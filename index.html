@@ -1209,7 +1209,7 @@ body {
             if (a.r === c2.r) return '포켓페어';
             return a.s === c2.s ? '수딧' : '옵숫';
         }
-        return handName(evalBest(me.hole.concat(b)));
+        return handDetail(evalBest(me.hole.concat(b)), me.hole, b);
     }
 
     // me-head에 상시로 걸리는 "지금 내 패". 예전엔 Tab을 누르고 있거나
@@ -1386,7 +1386,7 @@ body {
         // 힌트 기능이 쓰던 myDrawInfo를 그대로 붙인다.
         var dr = myDrawInfo();
         var score = evalBest(me.hole.concat(st.board));
-        var name = handName(score) + (dr ? ' · ' + dr.text : '');
+        var name = handDetail(score, me.hole, st.board) + (dr ? ' · ' + dr.text : '');
         var made = Math.floor(score / P15_5) > 0;
         var o = myOuts();
         var head = '<div class="math-top">' + stars(postStars(postValue(me, o))) +
@@ -1800,6 +1800,39 @@ body {
         return CAT_NAME[cat];
     }
 
+    // "원페어"만으론 10 원페어인지 2 원페어인지, 보드에 깔려서 모두가 가진
+    // 페어인지도 모른다. score에 이미 타이브레이커가 15진수로 들어 있으니
+    // 새로 계산할 것 없이 꺼내 쓰기만 하면 된다.
+    function handDetail(score, hole, board) {
+        var cat = Math.floor(score / P15_5);
+        function tb(i) { return Math.floor(score / Math.pow(15, 4 - i)) % 15; }
+        function rn(r) { return RANK_CH[r] || ''; }
+        switch (cat) {
+            case 0: return rn(tb(0)) + ' 하이카드';
+            case 1: return pairDetail(tb(0), hole, board, rn);
+            case 2: return rn(tb(0)) + '·' + rn(tb(1)) + ' 투페어';
+            case 3: return rn(tb(0)) + ' 트리플';
+            case 4: return rn(tb(0)) + ' 하이 스트레이트';
+            case 5: return rn(tb(0)) + ' 하이 플러시';
+            case 6: return rn(tb(0)) + ' 풀하우스 (' + rn(tb(1)) + ')';
+            case 7: return rn(tb(0)) + ' 포카드';
+            case 8: return tb(0) === 14 ? '로열 스트레이트 플러시'
+                : rn(tb(0)) + ' 하이 스트레이트 플러시';
+        }
+        return handName(score);
+    }
+
+    // 원페어는 "몇 번 페어냐"보다 "보드에서 어디쯤이냐"가 실전 정보다.
+    // postStrength가 세기를 매길 때 쓰는 기준(pairRank >= boardMax)과 같은 말을 쓴다.
+    function pairDetail(pr, hole, board, rn) {
+        if (!board || !board.length || !hole || hole.length < 2) return rn(pr) + ' 원페어';
+        if (hole[0].r !== pr && hole[1].r !== pr) return '보드 ' + rn(pr) + ' 원페어';
+        var rs = board.map(function (c) { return c.r; });
+        var bmax = Math.max.apply(null, rs), bmin = Math.min.apply(null, rs);
+        if (hole[0].r === hole[1].r && pr > bmax) return rn(pr) + ' 오버페어';
+        return rn(pr) + (pr >= bmax ? ' 탑페어' : pr <= bmin ? ' 바닥페어' : ' 미들페어');
+    }
+
     function buildPots(ps) {
         var pots = [];
         var rem = ps.map(function (p) { return { p: p, t: p.totalBet }; });
@@ -2055,6 +2088,13 @@ body {
             ['수딧', '내 두 장이 같은 무늬. 플러시 가능성이 붙습니다.'],
             ['옵숫', '내 두 장의 무늬가 다름.'],
             ['커넥터', '내 두 장의 숫자가 연속. 스트레이트가 잘 붙습니다.']
+        ]],
+        ['어떤 원페어인가', [
+            ['탑페어', '보드에서 가장 높은 카드와 짝이 맞은 원페어. 같은 원페어라도 제일 셉니다.'],
+            ['미들페어', '보드의 가장 높은 카드보다는 낮고 가장 낮은 카드보다는 높은 원페어. 애매한 자리입니다.'],
+            ['바닥페어', '보드에서 가장 낮은 카드와 짝이 맞은 원페어. 이기고 있는 경우가 드뭅니다.'],
+            ['오버페어', '내 포켓페어가 보드의 모든 카드보다 높은 상태. 탑페어보다 셉니다.'],
+            ['보드 원페어', '페어가 보드에만 있고 내 두 장은 안 쓰인 상태. 남아 있는 사람 전부가 똑같이 가진 패라 내 것이 아닙니다.']
         ]],
         ['상대 읽기', [
             ['참여율 (VPIP)', '돈을 넣고 판에 참여한 비율. 높으면 아무 패나 치는 루즈, 낮으면 좋은 패만 치는 타이트입니다.'],
@@ -3120,7 +3160,7 @@ body {
                 fly(amtFx(share), $('potView'), boxAnchor(p), { delay: 700 + idx * 150, hold: 1100, rot: Math.random() * 60 - 30 });
             });
             log(winners.map(function (p) { return p.name; }).join(', ') + ' +' + fmt(amt) +
-                ' (' + handName(best) + (pots.length > 1 && idx > 0 ? ' · 사이드' : '') + (winners.length > 1 ? ' · 찹' : '') + ')', 'log-win');
+                ' (' + handDetail(best, winners[0].hole, st.board) + (pots.length > 1 && idx > 0 ? ' · 사이드' : '') + (winners.length > 1 ? ' · 찹' : '') + ')', 'log-win');
         });
 
         winnersAll.forEach(function (seat) {
@@ -3179,9 +3219,9 @@ body {
             p.best = bestFive(p.hole.concat(st.board));
             p.score = p.best.score;
             if (p.score > p.stats.bestScore) p.stats.bestScore = p.score;
-            p.handName = handName(p.score);
+            p.handName = handDetail(p.score, p.hole, st.board);
             log(p.name + ': ' + p.hole.map(function (c) { return cardHtml(c, '', 0, 1); }).join('') +
-                ' — ' + handName(p.score), p.isHuman ? 'log-me' : '');
+                ' — ' + p.handName, p.isHuman ? 'log-me' : '');
         });
         renderAll();
 
@@ -3933,6 +3973,7 @@ body {
             '플러시 드로우', '스트레이트 드로우', '것샷',
             '폴드', '체크', '콜', '레이즈', '올인', '버스트', '헤즈업',
             '찹', '사이드', '키커', '배드 비트',
+            '탑페어', '미들페어', '바닥페어', '오버페어', '보드 원페어',
             '플랍', '턴', '리버', '수딧', '옵숫', '포켓', '커넥터', '참여율'
         ]);
         var missing = shown.filter(function (w) { return !inGlossary(w); });
@@ -4062,10 +4103,37 @@ body {
             P = kp; st.board = kb; st.inHand = ki; meReveal = kr; shownBoardLen = ks;
             return html;
         }
+        // ===== 어떤 패인지까지 =====
+        // "원페어"만으로는 10 원페어인지 2 원페어인지, 보드 페어인지도 몰랐다
+        function detailOf(hole, board) {
+            return handDetail(evalBest(hole.concat(board)), hole, board);
+        }
+        var flopK72 = [c(13, 2), c(7, 3), c(2, 0)];
+        T('탑페어는 숫자까지 말한다', detailOf([c(13, 0), c(9, 1)], flopK72) === 'K 탑페어');
+        T('미들페어', detailOf([c(7, 0), c(9, 1)], flopK72) === '7 미들페어');
+        T('바닥페어', detailOf([c(2, 1), c(9, 1)], flopK72) === '2 바닥페어');
+        T('포켓페어가 보드보다 높으면 오버페어',
+            detailOf([c(14, 0), c(14, 1)], flopK72) === 'A 오버페어');
+        T('보드에만 있는 페어는 내 패가 아니라고 말한다',
+            detailOf([c(9, 0), c(5, 1)], [c(7, 2), c(7, 3), c(2, 0)]) === '보드 7 원페어');
+        T('투페어는 두 숫자를 다 말한다',
+            detailOf([c(13, 0), c(7, 1)], flopK72) === 'K·7 투페어');
+        T('트리플·포카드·풀하우스도 숫자가 붙는다',
+            detailOf([c(7, 0), c(7, 1)], flopK72) === '7 트리플' &&
+            detailOf([c(7, 0), c(7, 1)], [c(7, 2), c(7, 3), c(2, 0)]) === '7 포카드' &&
+            detailOf([c(13, 0), c(7, 1)], [c(13, 1), c(7, 3), c(7, 2)]) === '7 풀하우스 (K)');
+        T('스트레이트·플러시는 하이 카드를 말한다',
+            detailOf([c(6, 0), c(7, 1)], [c(8, 2), c(9, 3), c(10, 0)]) === '10 하이 스트레이트' &&
+            detailOf([c(14, 0), c(4, 0)], [c(8, 0), c(9, 0), c(2, 0)]) === 'A 하이 플러시');
+        T('로열은 이름을 그대로 쓴다',
+            detailOf([c(14, 0), c(13, 0)], [c(12, 0), c(11, 0), c(10, 0)]) === '로열 스트레이트 플러시');
+        T('하이카드도 어느 카드가 높은지 말한다',
+            detailOf([c(14, 0), c(4, 1)], [c(9, 2), c(7, 3), c(2, 0)]) === 'A 하이카드');
+
         var straight = [c(6, 0), c(7, 1)];
         var sBoard = [c(8, 2), c(9, 3), c(10, 0)];
         T('스트레이트를 들고 있으면 화면에 스트레이트라고 뜬다',
-            badgeWith(straight, sBoard, 3).indexOf('스트레이트') > 0);
+            badgeWith(straight, sBoard, 3).indexOf('10 하이 스트레이트') > 0);
         T('프리플랍엔 두 장의 관계를 알려준다',
             badgeWith([c(14, 0), c(14, 1)], [], 0).indexOf('포켓페어') > 0 &&
             badgeWith([c(14, 0), c(9, 0)], [], 0).indexOf('수딧') > 0);
