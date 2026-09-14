@@ -14,6 +14,18 @@
 :root {
     --scale: 15px;
 
+    /* ponytail: 반응형 노브. 미디어쿼리는 이 9개만 갈아끼운다 - 규칙을 6벌 복사하지 않는다.
+       --scale은 사용자 설정이라 인라인 스타일로 박힌다(미디어쿼리로 못 덮는다) → 곱셈 변수로 우회 */
+    --dens: 1;
+    --seat-w: 13rem;       /* 좌석 한 칸 폭 = 열 개수를 정하는 값 */
+    --card-w: 2.7rem;
+    --card-h: 3.7rem;
+    --bcard-w: 3.4rem;
+    --bcard-h: 4.7rem;
+    --felt-x: 5rem;
+    --felt-y: 4.6rem;
+    --felt-r: 34%;
+
     --bg: #0a0a12;
     --panel: #101728;
     --fg: #d8e8f0;
@@ -117,7 +129,7 @@
     --felt-bg: #dfe9e2;
 }
 
-html { font-size: calc(var(--scale) * 1.33333); }
+html { font-size: calc(var(--scale) * 1.33333 * var(--dens)); }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -127,7 +139,7 @@ html, body { height: 100%; }
 
 body {
     font-family: "IBM Plex Mono", "IBM Plex Sans KR", Consolas, monospace;
-    font-size: var(--scale);
+    font-size: calc(var(--scale) * var(--dens));
     letter-spacing: -0.03em;
     -webkit-text-size-adjust: 100%;
     background:
@@ -153,8 +165,11 @@ body {
     height: 100dvh;
     z-index: 50;
     display: flex;
-    align-items: center;
     justify-content: center;
+    /* ponytail: align-items:center로 가운데 정렬한 flex 아이템은 넘칠 때 위쪽이
+       음수 좌표로 밀려서 스크롤해도 못 닿는다. margin:auto는 안 그런다 */
+    overflow-y: auto;
+    padding: 0.8rem 0;
     background: rgba(0, 0, 0, 0.8);
 }
 
@@ -195,7 +210,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    overflow-y: auto;
+    overflow: hidden;
 }
 
 .topline {
@@ -247,10 +262,18 @@ body {
 
 .seats {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(8.5rem, 13rem));
+    /* ponytail: auto-fit의 열 개수는 min이 아니라 max가 정한다(CSS Grid 7.2.3.1).
+       그래서 min=max로 두고 --seat-w 하나만 노브로 쓴다. 남는 폭은 justify-content가 가운데로 몬다.
+       min()은 --seat-w가 화면보다 넓을 때 넘치지 말라고 씌운 안전장치다 */
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--seat-w)), var(--seat-w)));
     justify-content: center;
     gap: 0.4rem;
-    flex: none;
+    /* ponytail: 공간이 모자라면 양보하는 쪽은 항상 좌석이다.
+       보드(.board-wrap)는 flex:none으로 제 높이를 지키고, 좌석만 줄어들며 스크롤된다.
+       max-height 매직넘버가 필요 없다 - 2명이면 알아서 안 스크롤된다 */
+    flex: 0 1 auto;
+    min-height: 0;
+    overflow-y: auto;
 }
 
 .seat { border: 1px solid var(--line); padding: 0.35rem 0.45rem; min-height: 4rem; background: var(--panel); transition: border-color 0.18s ease, box-shadow 0.18s ease; }
@@ -293,10 +316,10 @@ body {
 
 .card {
     display: inline-block;
-    width: 2.7rem;
-    min-width: 2.7rem;
-    height: 3.7rem;
-    line-height: 3.6rem;
+    width: var(--card-w);
+    min-width: var(--card-w);
+    height: var(--card-h);
+    line-height: calc(var(--card-h) - 0.1rem);
     border-radius: 3px;
     padding: 0;
     margin-right: 0.45rem;
@@ -305,7 +328,7 @@ body {
     border: 1px solid var(--line-hi);
     background: var(--card-bg);
     color: var(--card-fg);
-    font-size: 1.17em;
+    font-size: calc(var(--card-w) * 0.33);
     font-weight: 700;
     overflow: hidden;
     transition: opacity 0.25s ease, box-shadow 0.25s ease;
@@ -475,14 +498,14 @@ body {
     margin: auto 0;
     align-self: center;
     min-width: min(46rem, 92%);
-    padding: 4.6rem 5rem;
+    padding: var(--felt-y) var(--felt-x);
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 0.8rem;
     flex: none;
     border: 1px solid var(--line-hi);
-    border-radius: 50% / 34%;
+    border-radius: 50% / var(--felt-r);
     background:
         radial-gradient(ellipse at center, var(--felt-a) 0%, var(--felt-b) 55%, transparent 78%),
         var(--felt-bg);
@@ -491,11 +514,11 @@ body {
 
 /* 보드는 테이블의 주인공이다. 좌석 카드보다 크게 */
 .board .card {
-    width: 3.4rem;
-    min-width: 3.4rem;
-    height: 4.7rem;
-    line-height: 4.6rem;
-    font-size: 1.5em;
+    width: var(--bcard-w);
+    min-width: var(--bcard-w);
+    height: var(--bcard-h);
+    line-height: calc(var(--bcard-h) - 0.1rem);
+    font-size: calc(var(--bcard-w) * 0.33);
     margin-right: 0.5rem;
 }
 
@@ -696,7 +719,7 @@ body {
 .log .card.red { color: var(--red); }
 .log .card i { margin-right: 0.1rem; }
 
-.end-box { width: min(46rem, calc(100vw - 2rem)); border: 1px solid var(--line); padding: 1.4rem; text-align: center; background: var(--bg); }
+.end-box { width: min(46rem, calc(100vw - 2rem)); margin: auto; flex: none; border: 1px solid var(--line); padding: 1.4rem; text-align: center; background: var(--bg); }
 
 
 .result-tbl { width: 100%; margin-top: 0.9rem; border-collapse: collapse; }
@@ -725,8 +748,9 @@ body {
 
 
 /* ponytail: 기기 종류가 아니라 공간으로 나눈다.
-   폰/태블릿/PC와 가로/세로는 결국 "폭이 좁은가"와 "높이가 낮은가"로 수렴한다.
-   좌석 그리드는 auto-fit minmax가 이미 폭에 맞춰 열 수를 정하므로 건드리지 않는다. */
+   폰/태블릿/PC × 세로/가로 6가지는 결국 orientation + 폭/높이로 수렴한다.
+   각 블록은 :root 노브만 갈아끼운다. 회전은 미디어쿼리가 알아서 재평가하고,
+   fx/힌트의 픽셀 좌표는 window resize 핸들러(repositionFx)가 다시 잡는다. */
 
 /* 마우스가 있을 때만 hover. 터치에선 이 블록이 통째로 꺼진다 */
 @media (hover: hover) {
@@ -737,43 +761,127 @@ body {
     .sd-timer:hover .sd-arrow { display: flex; }
 }
 
-/* 좁다(폰 세로, 작은 창): 로그를 옆에서 아래로 */
-@media (max-width: 760px) {
-    #scrGame { flex-direction: column; }
-    .log-pane {
-        flex: 0 0 8rem;
-        min-width: 0;
-        border-left: none;
-        border-top: 1px solid var(--line);
-    }
-    .actions { width: 100%; margin-left: 0; }
-    .raise-box { flex: 1 1 100%; }
-    .me-bet { max-width: none; }
-}
-
-/* 낮다(폰 가로, 낮은 창): 세로 여백부터 깎는다 */
-@media (max-height: 520px) {
-    .table-area { padding: 0.35rem; gap: 0.35rem; }
-    .table-mid { gap: 0.35rem; }
-    .board-wrap { gap: 0.3rem; }
-    .sd-timer { width: 26px; height: 26px; margin-top: 0; }
-    .seat { min-height: 3.2rem; }
-    .board-wrap { padding: 1.2rem 3rem; border-radius: 50% / 40%; }
-    .card { width: 2rem; min-width: 2rem; height: 2.8rem; line-height: 2.7rem; }
-    .board .card { width: 2.5rem; min-width: 2.5rem; height: 3.5rem; line-height: 3.4rem; font-size: 1.2em; }
-    .seat-cards { min-height: 3rem; }
-    .me-panel { padding: 0.35rem 0.6rem; }
-    .me-head { margin-bottom: 0.35rem; }
-    .log-pane { flex-basis: 6rem; }
-}
-
-/* 손가락은 마우스보다 굵다 */
+/* 손가락은 마우스보다 굵다. min-height는 px - --dens가 rem을 줄여도 여긴 안 줄어든다.
+   아래 기기 블록들보다 먼저 와야 padding은 덮이고 최소 크기는 살아남는다 */
 @media (pointer: coarse) {
-    .btn { padding: 0.55rem 1rem; }
-    .preset { padding: 0.4rem 0.7rem; }
-    .stepper button { width: 2.4rem; padding: 0.4rem 0; }
+    .btn { padding: 0.5rem 1rem; min-height: 44px; }
+    .preset { padding: 0.4rem 0.7rem; min-height: 34px; }
+    .stepper button { width: 2.4rem; min-height: 34px; padding: 0.4rem 0; }
     .skip-btn { padding: 0.4rem 0.9rem; }
+    .pane-tab { min-height: 40px; }
 }
+
+/* 폰(세로·가로 공통): 좌석에서 정보량 0인 것부터 걷어낸다.
+   카드 뒷면은 display:none이 아니라 축소 - .back이 벗겨지는 쇼다운엔 저절로 제 크기로 돌아온다 */
+@media (max-width: 600px), (max-height: 500px) {
+    /* 좌석을 2줄로 압축한다: [이름·뱃지·상태] / [스택 · 베팅 · 카드].
+       137px -> 50px. 8명이 스크롤 없이 다 보인다 */
+    .seat {
+        min-height: auto;              /* 0이면 그리드 자동 최소 크기까지 꺼져서 내용보다 작아진다 */
+        padding: 0.25rem 0.4rem;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        column-gap: 0.4rem;
+    }
+    .seat-head { flex: 1 1 100%; margin-bottom: 0; }
+    .seat-chips { flex: 0 0 auto; }
+    .seat-bet { flex: 1 1 auto; min-width: 0; text-align: right; min-height: 0; }
+    .seat-tend { display: none; }        /* AI 성향 문구는 폰에서 사치다 */
+    .seat .chip-stk { display: none; }   /* 바로 옆 숫자와 완전히 중복이다 */
+    .pot .chip-stk { display: none; }    /* 같은 이유. 아낀 23px은 로그 줄 수로 간다 */
+    .seat-cards { flex: 0 0 auto; min-height: 0; margin-top: 0; }
+    /* 축소 대상은 '정보가 0인 것'뿐이다: 맨몸 뒷면, 모든 슬롯, 슬롯을 덮는 뒷면.
+       진짜 카드를 덮는 뒷면(쇼다운 뒤집기)은 빠져서 밑장과 크기가 정확히 맞는다 */
+    .seat-cards > .card.back,
+    .seat-cards .card.slot,
+    .seat-cards .card.slot + .card.back { width: 0.9rem; min-width: 0.9rem; height: 1.25rem; line-height: 1.25rem; margin-right: 0.2rem; }
+}
+
+/* ── 1. 폰 세로 ── */
+@media (orientation: portrait) and (max-width: 600px) {
+    :root {
+        --dens: 0.8;
+        --seat-w: 9rem;            /* 2열 고정. 320px 화면에서도 2열이 유지되는 상한 */
+        --card-w: 2.4rem; --card-h: 3.3rem;
+        --bcard-w: 2.5rem; --bcard-h: 3.5rem;
+        --felt-x: 1.2rem; --felt-y: 0.9rem; --felt-r: 46%;
+    }
+    #scrGame { flex-direction: column; }
+    .log-pane { flex: 0 0 6.5rem; min-width: 0; border-left: none; border-top: 1px solid var(--line); }
+    .board-wrap { min-width: 100%; gap: 0.3rem; }
+    .sd-timer { width: 26px; height: 26px; margin-top: 0; }
+    .me-panel { padding: 0.4rem 0.5rem; }
+    .me-head { margin-bottom: 0.25rem; }
+    .me-row { gap: 0.4rem; }
+    .me-bet { max-width: none; }
+    /* 내 카드 + ?는 한 줄, 레이즈 조작은 아래로. (가로와 달리 세로는 폭이 좁아
+       display:contents로 한 줄에 몰면 액션이 더 접혀서 오히려 높아진다 - 측정해봄) */
+    .raise-box { flex: 1 1 100%; justify-content: center; }
+    .preset { padding: 0.3rem 0.35rem; }
+}
+
+/* ── 2. 폰 가로 ── */
+@media (orientation: landscape) and (max-height: 500px) {
+    :root {
+        --dens: 0.75;
+        --seat-w: 8rem;            /* 5열 → 8명이 2줄 */
+        --card-w: 2rem; --card-h: 2.8rem;
+        --bcard-w: 2.2rem; --bcard-h: 3rem;
+    }
+    /* 높이 390px에서 펠트 타원은 사치다. 그 자리는 보드 카드가 쓴다 */
+    .board-wrap { min-width: 0; padding: 0; border: none; border-radius: 0; background: none; box-shadow: none; gap: 0.3rem; }
+    .pot-split { min-height: 0; }      /* 사이드팟 없으면 빈 줄 자리도 없앤다. 생기면 알아서 늘어난다 */
+    .table-area { padding: 0.3rem; gap: 0.3rem; }
+    .table-mid { gap: 0.3rem; }
+    .log-pane { flex: 0 1 9rem; }
+    .sd-timer { width: 26px; height: 26px; margin-top: 0; }
+    .me-panel { padding: 0.3rem 0.5rem; }
+    .me-head { margin-bottom: 0.2rem; }
+    .me-row { gap: 0.4rem; }
+    .me-bet { max-width: none; }
+    /* 390px 높이에선 내 카드가 자기 줄을 통째로 먹는 게 제일 비싸다.
+       me-row를 display:contents로 녹여서 [카드][?][액션]을 한 줄에 세운다 */
+    .me-panel { display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: center; gap: 0.25rem 0.5rem; }
+    .me-head { grid-column: 1 / -1; }
+    .me-row { display: contents; }
+    .raise-box { flex: 1 1 100%; justify-content: center; }
+    .preset { padding: 0.25rem 0.35rem; }
+}
+
+/* ── 3. 태블릿 세로 ── (세로로 긴 데스크톱 창도 여기로 온다) */
+@media (orientation: portrait) and (min-width: 601px) and (max-width: 1024px) {
+    :root {
+        --dens: 0.9;
+        --seat-w: 10rem;           /* 4열 → 8명이 2줄 */
+        --felt-x: 3rem; --felt-y: 2rem; --felt-r: 40%;
+    }
+    #scrGame { flex-direction: column; }
+    .log-pane { flex: 0 0 8rem; min-width: 0; border-left: none; border-top: 1px solid var(--line); }
+    .seat-cards { min-height: 0; }
+    .seat-cards > .card.back,
+    .seat-cards .card.slot,
+    .seat-cards .card.slot + .card.back { width: 1.4rem; min-width: 1.4rem; height: 1.9rem; line-height: 1.9rem; }
+}
+
+/* ── 4. 태블릿 가로 ── */
+@media (orientation: landscape) and (min-height: 501px) and (max-height: 900px) and (max-width: 1366px) {
+    :root {
+        --dens: 0.85;
+        --seat-w: 6.5rem;          /* 8명이 한 줄에 들어간다 */
+        --felt-x: 3.5rem; --felt-y: 1.5rem; --felt-r: 28%;
+    }
+    .log-pane { flex: 0 1 11rem; }
+    .seat .chip-stk { display: none; }   /* 8열이면 칩 더미가 스택 숫자를 덮는다 */
+    .seat-cards { min-height: 0; }
+    .seat-cards > .card.back,
+    .seat-cards .card.slot,
+    .seat-cards .card.slot + .card.back { width: 1.3rem; min-width: 1.3rem; height: 1.8rem; line-height: 1.8rem; }
+}
+
+/* ── 5. 데스크톱 가로 = 기본값(위 :root).
+   ── 6. 데스크톱 세로(돌린 모니터)는 폭이 1024를 넘으므로 역시 기본값이 맞다.
+          안 걸릴 빈 블록을 만드느니 여기 적어둔다. */
 
 </style>
 </head>
@@ -3274,8 +3382,10 @@ body {
             if (hintEl) hideHint();
         });
 
-        window.addEventListener('resize', repositionFx);
-        $('tableMid').addEventListener('scroll', repositionFx);
+        // 회전 직후엔 resize가 새 레이아웃보다 먼저 오는 브라우저가 있다. 다음 프레임에 한 번 더
+        window.addEventListener('resize', function () { repositionFx(); requestAnimationFrame(repositionFx); });
+        // 스크롤 주체는 .table-mid가 아니라 좌석 그리드다(CSS 참고). 말풍선이 좌석을 따라가야 한다
+        $('seatGrid').addEventListener('scroll', repositionFx);
 
         $('btnRestart').addEventListener('click', showStart);
 
