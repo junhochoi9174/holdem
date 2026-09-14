@@ -1,0 +1,3693 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Holdem.io</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23ddd'/%3E%3Ctext x='32' y='52' font-size='52' text-anchor='middle' fill='black'%3E%E2%99%A0%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* ponytail: 노브 하나. --scale이 글자와 레이아웃(rem)을 같이 끌고 간다.
+   12px일 때 html은 정확히 16px = 기존과 픽셀 단위로 동일하다. */
+:root {
+    --scale: 15px;
+
+    --bg: #0a0a12;
+    --panel: #101728;
+    --fg: #d8e8f0;
+    --dim: #7d90a8;
+    --dimmer: #4e5d74;
+    --line: #24304a;
+    --line-hi: #3a4a6b;
+
+    --accent: #00e5d4;
+    --accent2: #ff2d95;
+    --red: #ff2d6b;
+    --red-dim: #8c1f45;
+
+    --card-bg: #e6eef5;
+    --card-fg: #0a0a12;
+    --card-dim: #7f8b96;
+    --card-red: #d81b60;
+    --back-a: #182038;
+    --back-b: #0a0d18;
+
+    --glow: 0 0 6px rgba(0, 229, 212, 0.65);
+    --glow2: 0 0 8px rgba(255, 45, 149, 0.6);
+
+    --scan: rgba(0, 229, 212, 0.025);
+    --vignette: #141426;
+    --felt-a: rgba(0, 229, 212, 0.08);
+    --felt-b: rgba(0, 229, 212, 0.02);
+    --felt-shadow: inset 0 0 70px rgba(0, 229, 212, 0.07), 0 0 50px rgba(0, 0, 0, 0.55);
+    --board-glow: rgba(0, 229, 212, 0.09);
+    --chip-rim: rgba(255, 255, 255, 0.5);
+    --felt-bg: #0d1a24;
+}
+
+/* 차분한 다크: 배경은 그대로 어둡게, 글로우와 채도만 내린다 */
+:root[data-theme="calm"] {
+    --bg: #0e1116;
+    --panel: #151a22;
+    --fg: #c8d2dc;
+    --dim: #7b8794;
+    --dimmer: #545f6b;
+    --line: #232b36;
+    --line-hi: #333d4b;
+
+    --accent: #4a9d94;
+    --accent2: #b5638a;
+    --red: #c9556e;
+    --red-dim: #6b3040;
+
+    --card-bg: #e8ecf0;
+    --card-fg: #14181e;
+    --card-dim: #8b939c;
+    --card-red: #c03a5e;
+    --back-a: #26303e;
+    --back-b: #131820;
+
+    --glow: 0 0 4px rgba(74, 157, 148, 0.4);
+    --glow2: 0 0 4px rgba(181, 99, 138, 0.4);
+
+    --scan: transparent;
+    --vignette: #141922;
+    --felt-a: rgba(74, 157, 148, 0.05);
+    --felt-b: rgba(74, 157, 148, 0.015);
+    --felt-shadow: inset 0 0 60px rgba(74, 157, 148, 0.04), 0 0 40px rgba(0, 0, 0, 0.5);
+    --board-glow: rgba(74, 157, 148, 0.05);
+    --chip-rim: rgba(255, 255, 255, 0.42);
+    --felt-bg: #121a20;
+}
+
+/* 라이트: 카드 앞면은 어차피 흰색이라 테두리 대비로 구분한다 */
+:root[data-theme="light"] {
+    --bg: #eef1f6;
+    --panel: #ffffff;
+    --fg: #16202e;
+    --dim: #5b6b80;
+    --dimmer: #8a97a8;
+    --line: #d2d9e4;
+    --line-hi: #aab5c6;
+
+    --accent: #0a8f85;
+    --accent2: #c2185b;
+    --red: #d81b60;
+    --red-dim: #e8a0b8;
+
+    --card-bg: #ffffff;
+    --card-fg: #16202e;
+    --card-dim: #a8b4c2;
+    --card-red: #d81b60;
+    --back-a: #7c8aa0;
+    --back-b: #4e5a6d;
+
+    --glow: 0 0 0 2px rgba(10, 143, 133, 0.18);
+    --glow2: 0 0 0 2px rgba(194, 24, 91, 0.18);
+
+    --scan: transparent;
+    --vignette: #ffffff;
+    --felt-a: rgba(10, 143, 133, 0.07);
+    --felt-b: rgba(10, 143, 133, 0.02);
+    --felt-shadow: inset 0 0 60px rgba(10, 143, 133, 0.05), 0 0 30px rgba(22, 32, 46, 0.12);
+    --board-glow: rgba(10, 143, 133, 0.06);
+    --chip-rim: rgba(22, 32, 46, 0.4);
+    --felt-bg: #dfe9e2;
+}
+
+html { font-size: calc(var(--scale) * 1.33333); }
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+[hidden] { display: none !important; }
+button { font: inherit; color: inherit; background: none; border: none; touch-action: manipulation; }
+
+html, body { height: 100%; }
+
+body {
+    font-family: "IBM Plex Mono", "IBM Plex Sans KR", Consolas, monospace;
+    font-size: var(--scale);
+    letter-spacing: -0.03em;
+    -webkit-text-size-adjust: 100%;
+    background:
+        repeating-linear-gradient(0deg, var(--scan) 0 1px, transparent 1px 3px),
+        radial-gradient(ellipse 120% 80% at 50% 40%, var(--vignette) 0%, var(--bg) 70%);
+    color: var(--fg);
+    overflow: hidden;
+
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--line); }
+
+.dim { color: var(--dim); }
+
+.screen {
+    position: fixed;
+    inset: 0;
+    height: 100dvh;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.8);
+}
+
+.btn {
+    padding: 0.3rem 0.9rem;
+    border: 1px solid var(--line-hi);
+    color: var(--fg);
+    font-weight: 700;
+}
+
+#btnCall { min-width: 6.4rem; }
+
+.btn, .preset, .stepper button { transition: background-color 0.12s ease, color 0.12s ease; }
+
+#scrGame {
+    position: fixed;
+    inset: 0;
+    height: 100dvh;
+    display: flex;
+    overflow: hidden;
+}
+
+.table-area {
+    position: relative;
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 0.5rem;
+    gap: 0.5rem;
+    overflow: hidden;
+}
+
+.table-mid {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    overflow-y: auto;
+}
+
+.topline {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.1rem 0 0.1rem 0.15rem;
+    min-height: 1.75rem;
+}
+.topline b { color: var(--fg); font-weight: 700; }
+
+#gameInfo { flex: 1 1 auto; min-width: 0; }
+
+.skip-btn { padding: 0.15rem 0.7rem; }
+
+/* 공짜로 체크할 수 있는데 폴드하는 건 100% 오클릭이다 */
+.btn.is-off { opacity: 0.3; pointer-events: none; }
+
+.ico { width: 1em; height: 1em; fill: currentColor; vertical-align: -0.12em; margin-right: 0.25em; }
+
+/* 칩 색은 테마를 안 탄다 - 빨강 칩은 어디서나 빨강이어야 읽힌다 */
+/* 작으면 액면가 숫자가 안 읽힌다 */
+.chip { width: 1.9em; height: 1.9em; margin: 0; display: block; }
+.pot .chip { width: 2.5em; height: 2.5em; }
+
+/* 던져 넣은 더미. 세로로 각 잡아 쌓으면 팟이 아니라 코인 아이콘처럼 보인다 */
+.chip-stk { position: relative; display: inline-block; vertical-align: middle;
+    width: 3em; height: 2.4em; margin-right: 0.3em; }
+.pot .chip-stk { width: 4.4em; height: 3.2em; margin-right: 0.5em; }
+.chip-slot { position: absolute; left: 50%; top: 50%; line-height: 0; }
+.chip-stk .chip { filter: drop-shadow(0 1.5px 2px rgba(0, 0, 0, 0.6)); }
+
+/* 이동은 fly()가 이미 보여줬다. 여기선 "꽂히는" 순간만 - 짧게 떨어져 눌렸다 펴진다 */
+@keyframes chip-toss {
+    0% { opacity: 0; transform: translate(var(--tx, 0), var(--ty, -14px)) scale(1.4) rotate(-8deg); }
+    55% { opacity: 1; transform: translate(0, 0) scale(0.88) rotate(0deg); }
+    100% { transform: translate(0, 0) scale(1) rotate(0deg); }
+}
+.chip.anim-toss { animation: chip-toss 0.3s cubic-bezier(0.3, 0.9, 0.4, 1) backwards; }
+
+.next-level { color: var(--dimmer); margin-left: 0.6rem; }
+
+.headsup-tag { color: var(--red); font-weight: 700; letter-spacing: 0.15rem; margin-left: 0.6rem; }
+
+.blind-prog { display: inline-flex; gap: 2px; margin-left: 0.5rem; }
+.blind-prog i { width: 7px; height: 7px; border: 1px solid var(--line); }
+.blind-prog i.is-on { background: var(--accent); border-color: var(--accent); }
+
+.seats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(8.5rem, 13rem));
+    justify-content: center;
+    gap: 0.4rem;
+    flex: none;
+}
+
+.seat { border: 1px solid var(--line); padding: 0.35rem 0.45rem; min-height: 4rem; background: var(--panel); transition: border-color 0.18s ease, box-shadow 0.18s ease; }
+
+.seat.is-acting,
+.me-panel.is-acting { border-color: var(--accent); box-shadow: var(--glow); }
+
+.seat.is-won,
+.me-panel.is-won { border-color: var(--accent2); box-shadow: var(--glow2); }
+
+.seat.is-folded,
+.seat.is-out { opacity: 0.62; }
+
+.seat-head { display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0.15rem; min-height: 1.3rem; }
+
+.seat-name { font-weight: 700; }
+
+.badge { background: var(--accent); color: var(--bg); font-weight: 700; padding: 0 0.3rem; }
+
+.badge-slot { display: inline-flex; gap: 2px; min-width: 1.7rem; }
+
+@keyframes badge-in { from { transform: scale(0.3); opacity: 0; } }
+.badge.anim-pop { animation: badge-in 0.24s cubic-bezier(0.2, 1.6, 0.4, 1) backwards; }
+
+.num-slot { display: inline-block; min-width: 4.2rem; }
+
+.tag { margin-left: auto; color: var(--dim); }
+.tag.is-allin { color: var(--red); font-weight: 700; }
+
+.seat-chips { color: var(--dim); }
+
+.seat-tend { color: var(--dimmer); font-size: 0.85em; min-height: 1.1em; }
+
+.seat-bet { color: var(--fg); font-weight: 700; min-height: 1.1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.hand-label { color: var(--dim); font-weight: 400; }
+.hand-label.is-win { color: var(--accent2); font-weight: 700; text-shadow: var(--glow2); }
+
+.seat-cards { margin-top: 0.25rem; min-height: 3.9rem; }
+
+.card {
+    display: inline-block;
+    width: 2.7rem;
+    min-width: 2.7rem;
+    height: 3.7rem;
+    line-height: 3.6rem;
+    border-radius: 3px;
+    padding: 0;
+    margin-right: 0.45rem;
+    text-align: center;
+    vertical-align: middle;
+    border: 1px solid var(--line-hi);
+    background: var(--card-bg);
+    color: var(--card-fg);
+    font-size: 1.17em;
+    font-weight: 700;
+    overflow: hidden;
+    transition: opacity 0.25s ease, box-shadow 0.25s ease;
+}
+
+.card i { font-style: normal; font-family: "Segoe UI Symbol", "IBM Plex Sans KR", sans-serif; margin-right: 0.2rem; }
+
+.card.red { color: var(--card-red); }
+
+.card.back { border-style: solid; background: repeating-linear-gradient(135deg, var(--back-a) 0 3px, var(--back-b) 3px 7px); color: transparent; }
+
+.card.is-dim { opacity: 0.5; }
+
+.card.is-draw { position: relative; overflow: visible; }
+.card.is-draw::after {
+    content: '▼';
+    position: absolute;
+    left: 50%;
+    top: -0.75rem;
+    transform: translateX(-50%);
+    color: var(--dim);
+    font-size: 0.67em;
+    line-height: 1;
+}
+.card.is-kicker { box-shadow: 0 0 0 1px var(--accent), var(--glow); }
+
+.card.is-dim.is-draw,
+.card.is-dim.is-kicker { opacity: 1; background: var(--card-dim); border-color: var(--back-a); }
+.card.is-dim.is-draw.red,
+.card.is-dim.is-kicker.red { color: var(--red-dim); }
+
+.card.slot { border-style: dashed; background: none; color: var(--dimmer); font-weight: 400; }
+
+.card-stack { position: relative; display: inline-block; vertical-align: middle; }
+.card-stack .card { display: block; }
+.card-stack .card.back { position: absolute; left: 0; top: 0; margin: 0; }
+
+@keyframes deal-in { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+.card.anim-deal { animation: deal-in 0.25s ease backwards; }
+
+@keyframes flip-in { from { opacity: 0; transform: rotateY(90deg); } to { opacity: 1; transform: none; } }
+.card.anim-flip { animation: flip-in 0.3s ease-out backwards; }
+
+@keyframes back-out { to { opacity: 0; } }
+
+#fxLayer { position: fixed; inset: 0; pointer-events: none; z-index: 40; }
+
+.fx { position: fixed; transition: transform 0.45s cubic-bezier(0.3, 0.7, 0.4, 1), opacity 0.45s ease; will-change: transform; }
+
+.fx .card { margin: 0; }
+
+.board { position: relative; }
+.board-slot { position: relative; }
+.deck { position: absolute; left: calc(50% - 0.225rem); top: 50%; opacity: 0; pointer-events: none; z-index: 2; transition: opacity 0.25s ease; }
+.deck.is-visible { opacity: 1; }
+.deck .card { position: absolute; left: 0; top: 0; margin: 0; transform: translate(-50%, -50%); }
+.deck .card:nth-child(2) { margin: -2px 0 0 2px; }
+.deck .card:nth-child(3) { margin: -4px 0 0 4px; }
+.deck.anim-shuffle .card:nth-child(1) { animation: shuf-l 0.22s ease 0ms 3; }
+.deck.anim-shuffle .card:nth-child(2) { animation: shuf-r 0.22s ease 35ms 3; }
+.deck.anim-shuffle .card:nth-child(3) { animation: shuf-l 0.22s ease 70ms 3; }
+
+@keyframes shuf-l { 0%, 100% { transform: translate(-50%, -50%); } 40% { transform: translate(calc(-50% - 16px), -56%) rotate(-7deg); } }
+@keyframes shuf-r { 0%, 100% { transform: translate(-50%, -50%); } 40% { transform: translate(calc(-50% + 16px), -44%) rotate(7deg); } }
+
+
+.fx-amt {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.15rem;
+    font-weight: 700;
+    color: var(--fg);
+    white-space: nowrap;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.95), 0 0 2px rgba(0, 0, 0, 0.8);
+}
+
+
+
+@keyframes fx-say-up {
+    0% { opacity: 0; transform: translate(-50%, -100%) translateY(4px); }
+    15% { opacity: 1; transform: translate(-50%, -100%) translateY(0); }
+    75% { opacity: 1; transform: translate(-50%, -100%) translateY(0); }
+    100% { opacity: 0; transform: translate(-50%, -100%) translateY(0); }
+}
+
+.fx-say {
+    position: fixed;
+    background: var(--bg);
+    border: 1px solid var(--fg);
+    color: var(--fg);
+    font-weight: 700;
+    padding: 0.2rem 0.55rem;
+    white-space: nowrap;
+}
+
+.fx-say.up { animation: fx-say-up 1.1s ease forwards; }
+.fx-say.up.win { animation-duration: 1.5s; }
+
+.fx-say::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    margin-left: -4px;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+}
+
+.fx-say.up::after { bottom: -5px; border-top: 5px solid currentColor; }
+
+.fx-say.fold { color: var(--dim); border-color: var(--dim); }
+
+.fx-say.win { color: var(--accent2); border-color: var(--accent2); box-shadow: var(--glow2); animation-duration: 2.2s; }
+
+.fx-say.think {
+    color: var(--dim);
+    border-color: var(--dim);
+    transform: translate(-50%, -100%);
+    animation: think-in 0.18s ease;
+}
+.fx-say.think::after { bottom: -5px; border-top: 5px solid currentColor; }
+
+.fx-say.think i {
+    display: inline-block;
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: currentColor;
+    margin: 0 1.5px;
+    vertical-align: middle;
+    animation: think-dot 0.9s ease infinite;
+}
+.fx-say.think i:nth-child(2) { animation-delay: 0.15s; }
+.fx-say.think i:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes think-in { from { opacity: 0; } }
+
+@keyframes think-dot { 0%, 100% { opacity: 0.15; } 30% { opacity: 1; } }
+
+.hand-hint {
+    position: fixed;
+    transform: translate(-50%, -100%) translateY(10px);
+    opacity: 0;
+    color: var(--fg);
+    white-space: nowrap;
+    pointer-events: none;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+}
+.hand-hint.is-visible { transform: translate(-50%, -100%) translateY(0); opacity: 1; }
+
+/* 보드 뒤에 사이언 글로우 하나. 이미지 없이 "테이블 위"가 생긴다 */
+.board-slot::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 130%;
+    height: 420%;
+    transform: translate(-50%, -50%);
+    background: radial-gradient(ellipse at center, var(--board-glow) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* ponytail: 빈 공간을 없애는 대신 테이블을 그려서 의미를 준다.
+   이미지 0장, CSS 타원 하나. */
+.board-wrap {
+    margin: auto 0;
+    align-self: center;
+    min-width: min(46rem, 92%);
+    padding: 4.6rem 5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.8rem;
+    flex: none;
+    border: 1px solid var(--line-hi);
+    border-radius: 50% / 34%;
+    background:
+        radial-gradient(ellipse at center, var(--felt-a) 0%, var(--felt-b) 55%, transparent 78%),
+        var(--felt-bg);
+    box-shadow: var(--felt-shadow);
+}
+
+/* 보드는 테이블의 주인공이다. 좌석 카드보다 크게 */
+.board .card {
+    width: 3.4rem;
+    min-width: 3.4rem;
+    height: 4.7rem;
+    line-height: 4.6rem;
+    font-size: 1.5em;
+    margin-right: 0.5rem;
+}
+
+.sd-timer {
+    position: relative;
+    width: 34px;
+    height: 34px;
+    margin-top: 0.3rem;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.sd-timer.is-visible { opacity: 1; pointer-events: auto; }
+
+.sd-track { fill: none; stroke: var(--line); stroke-width: 2; }
+
+.sd-prog {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 2;
+    stroke-dasharray: 100.5;
+    stroke-dashoffset: 0;
+    transform: rotate(-90deg);
+    transform-origin: center;
+}
+
+.sd-num,
+.sd-arrow {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--fg);
+    font-weight: 700;
+}
+
+.sd-arrow { display: none; }
+
+.pot { white-space: nowrap; color: var(--dim); }
+
+.pot-split { display: flex; gap: 0.7rem; color: var(--dim); min-height: 1.1rem; }
+.pot-split b { color: var(--fg); font-weight: 700; }
+/* 내가 자격 없는 팟은 흐리게 - 뭘 놓고 치는지가 한눈에 보여야 한다 */
+.pot-split .is-out { opacity: 0.4; }
+.pot b { display: inline-block; min-width: 3.5rem; text-align: center; color: var(--accent); font-weight: 700; text-shadow: var(--glow); }
+
+
+@keyframes pot-pulse { 30% { transform: scale(1.15); } }
+.pot b.anim-pulse { animation: pot-pulse 0.3s ease; }
+
+/* 베팅 칩이 자리에 놓일 때 */
+@keyframes chip-drop { from { opacity: 0; transform: translateY(-5px) scale(0.6); } }
+.seat-bet .chip, .me-bet .chip { animation: chip-drop 0.28s ease backwards; }
+
+.me-panel { border: 1px solid var(--line); padding: 0.6rem 0.9rem; flex: none; background: var(--panel); transition: border-color 0.18s ease, box-shadow 0.18s ease; }
+
+.me-head { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.6rem; flex-wrap: wrap; min-height: 1.3rem; }
+
+.me-bet { color: var(--fg); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 16rem; margin-left: auto; text-align: right; }
+.me-head .tag { margin-left: 0.5rem; }
+
+.math-btn { padding: 0.2rem 0.6rem; font-weight: 700; }
+.math-btn.is-on { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+
+.math-box {
+    margin-bottom: 0.5rem;
+    padding: 0.4rem 0.6rem;
+    border: 1px solid var(--line);
+    color: var(--dim);
+    line-height: 1.9;
+}
+.math-box b { color: var(--fg); font-weight: 700; }
+.math-top { margin-bottom: 0.15rem; }
+.math-top b { font-size: 1.15em; }
+.stars { color: var(--accent); letter-spacing: 0.1em; text-shadow: var(--glow); }
+.stars i { color: var(--dimmer); font-style: normal; text-shadow: none; }
+.math-sub { color: var(--dimmer); margin-left: 0.4rem; }
+.math-note { color: var(--dimmer); font-size: 0.92em; }
+.math-note b { color: var(--dim); }
+.math-box .good { color: var(--accent); font-weight: 700; }
+.math-box .bad { color: var(--red); font-weight: 700; }
+
+.me-row { display: flex; align-items: center; justify-content: center; gap: 1.4rem; flex-wrap: wrap; }
+
+.actions { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; transition: opacity 0.18s ease; }
+
+.actions[hidden] { display: flex !important; visibility: hidden; opacity: 0; }
+
+.raise-box { display: flex; align-items: center; flex-wrap: wrap; gap: 0.4rem; }
+
+.stepper { display: inline-flex; align-items: center; border: 1px solid var(--line-hi); }
+
+.stepper button { width: 1.6rem; padding: 0.2rem 0; text-align: center; color: var(--dim); }
+
+
+.raise-amt { min-width: 6.5rem; text-align: center; color: var(--fg); font-weight: 700; padding: 0 0.3rem; }
+#btnRaise { min-width: 4.4rem; text-align: center; }
+
+.preset { color: var(--dim); border: 1px solid var(--line); padding: 0.12rem 0.35rem; }
+
+
+.log-pane { position: relative; background: var(--panel); flex: 0 1 13rem; min-width: 9rem; border-left: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
+
+.log-pane::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 26px;
+    background: linear-gradient(var(--panel) 0%, var(--panel) 55%, transparent 100%);
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.log-pane.is-scrolled::before { opacity: 1; }
+
+.log-pane::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 30px;
+    background: linear-gradient(transparent 0%, var(--panel) 45%, var(--panel) 100%);
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+.log-pane.is-more::after { opacity: 1; }
+
+@keyframes log-bob { 0%, 100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(-6px); } }
+
+.log-more {
+    position: absolute;
+    left: 50%;
+    bottom: 0.4rem;
+    z-index: 2;
+    transform: translateX(-50%) translateY(8px);
+    opacity: 0;
+    pointer-events: none;
+    color: var(--fg);
+    font-size: 0.7em;
+    padding: 0.2rem 0.6rem;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+}
+.log-more.is-visible { opacity: 1; pointer-events: auto; animation: log-bob 0.7s ease-in-out infinite; }
+
+.log { flex: 1 1 auto; min-height: 0; overflow-y: scroll; padding: 0.4rem 0.6rem; line-height: 1.8; }
+
+/* 탭은 로그 상단 페이드(.log-pane::before) 위에 떠야 한다 */
+.pane-tabs {
+    position: relative;
+    z-index: 2;
+    flex: none;
+    display: flex;
+    background: var(--panel);
+    border-bottom: 1px solid var(--line);
+}
+.pane-tab { flex: 1 1 0; padding: 0.35rem 0; color: var(--dim); font-weight: 700; }
+.pane-tab.is-on { color: var(--accent); box-shadow: inset 0 -2px 0 var(--accent); }
+
+.terms { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 0.2rem 0.6rem 0.8rem; }
+.term-grp { color: var(--dimmer); letter-spacing: 0.12em; margin: 0.7rem 0 0.15rem; }
+.term { display: block; width: 100%; text-align: left; padding: 0.22rem 0; color: var(--fg); }
+.term::before { content: '+ '; color: var(--dim); }
+.term.is-open { color: var(--accent); }
+.term.is-open::before { content: '− '; color: var(--accent); }
+.term-def { color: var(--dim); line-height: 1.75; padding: 0.1rem 0 0.5rem 0.85rem; }
+
+@keyframes log-in { from { opacity: 0; transform: translateX(4px); } to { opacity: 1; transform: none; } }
+.log > div { animation: log-in 0.18s ease; }
+
+.log .log-me { font-weight: 700; }
+.log .log-sys { color: var(--dimmer); }
+.log .log-win { color: var(--accent2); font-weight: 700; }
+.log .log-dealer { color: var(--dim); }
+.log .log-div { color: var(--dim); margin-top: 0.35rem; }
+
+.log .card {
+    display: inline;
+    width: auto;
+    min-width: 0;
+    height: auto;
+    line-height: inherit;
+    margin-right: 0.4rem;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--fg);
+    font-size: 1em;
+}
+.log .card.red { color: var(--red); }
+.log .card i { margin-right: 0.1rem; }
+
+.end-box { width: min(46rem, calc(100vw - 2rem)); border: 1px solid var(--line); padding: 1.4rem; text-align: center; background: var(--bg); }
+
+
+.result-tbl { width: 100%; margin-top: 0.9rem; border-collapse: collapse; }
+.result-tbl th { color: var(--dim); font-weight: 400; padding: 0.25rem 0.4rem; border-bottom: 1px solid var(--line); }
+.result-tbl td { padding: 0.3rem 0.4rem; border-bottom: 1px solid var(--line); color: var(--dim); }
+.result-tbl tr.is-me td,
+.result-tbl tr.is-first td { color: var(--fg); font-weight: 700; }
+.result-tbl tr.is-first td:first-child { color: var(--accent2); text-shadow: var(--glow2); }
+
+.start-opt { display: flex; align-items: center; justify-content: center; gap: 0.4rem; margin-top: 1rem; color: var(--dim); }
+.start-opt .preset.is-on { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+
+.diff-hint { margin-top: 0.6rem; color: var(--dimmer); min-height: 1.2em; }
+
+.start-keys { margin-top: 1rem; color: var(--dimmer); line-height: 2; }
+.start-keys b { color: var(--dim); font-weight: 700; }
+
+.end-title { font-weight: 700; letter-spacing: 0.15rem; }
+
+.end-sub { margin-top: 0.6rem; color: var(--dim); line-height: 1.9; }
+
+.end-box .btn { margin-top: 1rem; }
+
+.seat-pick { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.4rem; margin-top: 1.2rem; }
+.seat-pick .btn { min-width: 3rem; margin-top: 0; }
+
+
+/* ponytail: 기기 종류가 아니라 공간으로 나눈다.
+   폰/태블릿/PC와 가로/세로는 결국 "폭이 좁은가"와 "높이가 낮은가"로 수렴한다.
+   좌석 그리드는 auto-fit minmax가 이미 폭에 맞춰 열 수를 정하므로 건드리지 않는다. */
+
+/* 마우스가 있을 때만 hover. 터치에선 이 블록이 통째로 꺼진다 */
+@media (hover: hover) {
+    .btn:hover,
+    .preset:hover,
+    .stepper button:hover { background: var(--accent); color: var(--bg); box-shadow: var(--glow); }
+    .sd-timer:hover .sd-num { display: none; }
+    .sd-timer:hover .sd-arrow { display: flex; }
+}
+
+/* 좁다(폰 세로, 작은 창): 로그를 옆에서 아래로 */
+@media (max-width: 760px) {
+    #scrGame { flex-direction: column; }
+    .log-pane {
+        flex: 0 0 8rem;
+        min-width: 0;
+        border-left: none;
+        border-top: 1px solid var(--line);
+    }
+    .actions { width: 100%; margin-left: 0; }
+    .raise-box { flex: 1 1 100%; }
+    .me-bet { max-width: none; }
+}
+
+/* 낮다(폰 가로, 낮은 창): 세로 여백부터 깎는다 */
+@media (max-height: 520px) {
+    .table-area { padding: 0.35rem; gap: 0.35rem; }
+    .table-mid { gap: 0.35rem; }
+    .board-wrap { gap: 0.3rem; }
+    .sd-timer { width: 26px; height: 26px; margin-top: 0; }
+    .seat { min-height: 3.2rem; }
+    .board-wrap { padding: 1.2rem 3rem; border-radius: 50% / 40%; }
+    .card { width: 2rem; min-width: 2rem; height: 2.8rem; line-height: 2.7rem; }
+    .board .card { width: 2.5rem; min-width: 2.5rem; height: 3.5rem; line-height: 3.4rem; font-size: 1.2em; }
+    .seat-cards { min-height: 3rem; }
+    .me-panel { padding: 0.35rem 0.6rem; }
+    .me-head { margin-bottom: 0.35rem; }
+    .log-pane { flex-basis: 6rem; }
+}
+
+/* 손가락은 마우스보다 굵다 */
+@media (pointer: coarse) {
+    .btn { padding: 0.55rem 1rem; }
+    .preset { padding: 0.4rem 0.7rem; }
+    .stepper button { width: 2.4rem; padding: 0.4rem 0; }
+    .skip-btn { padding: 0.4rem 0.9rem; }
+}
+
+</style>
+</head>
+<body>
+
+<!-- ponytail: 인라인 SVG 스프라이트. fill을 안 박고 currentColor로 두면
+     .card.red 안에선 빨강, .dim 안에선 회색으로 저절로 따라간다 -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <!-- 칩은 액면가마다 심볼이 따로 있다. use 안쪽 텍스트는 인스턴스별로 못 바꾼다 -->
+    <symbol id="chip-white" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="11.4" fill="#eef2f7"/>
+        <circle cx="12" cy="12" r="9.8" fill="none" stroke="#64748b" stroke-width="3.6" stroke-dasharray="7 8.4"/>
+        <circle cx="12" cy="12" r="11.4" fill="none" stroke="var(--chip-rim, rgba(0,0,0,0.35))" stroke-width="1.4"/>
+        <circle cx="12" cy="12" r="8.7" fill="#ffffff" stroke="#64748b" stroke-width="0.9"/>
+        <text x="12" y="12.3" text-anchor="middle" dominant-baseline="central"
+              font-size="9.2" font-weight="700" fill="#1b2430">100</text>
+    </symbol>
+    <symbol id="chip-red" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="11.4" fill="#c62233"/>
+        <circle cx="12" cy="12" r="9.8" fill="none" stroke="#ffffff" stroke-width="3.6" stroke-dasharray="7 8.4"/>
+        <circle cx="12" cy="12" r="11.4" fill="none" stroke="var(--chip-rim, rgba(0,0,0,0.35))" stroke-width="1.4"/>
+        <circle cx="12" cy="12" r="8.7" fill="#ef5f74" stroke="#ffffff" stroke-width="0.9"/>
+        <text x="12" y="12.3" text-anchor="middle" dominant-baseline="central"
+              font-size="9.2" font-weight="700" fill="#4a0510">500</text>
+    </symbol>
+    <symbol id="chip-green" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="11.4" fill="#0f7a44"/>
+        <circle cx="12" cy="12" r="9.8" fill="none" stroke="#ffffff" stroke-width="3.6" stroke-dasharray="7 8.4"/>
+        <circle cx="12" cy="12" r="11.4" fill="none" stroke="var(--chip-rim, rgba(0,0,0,0.35))" stroke-width="1.4"/>
+        <circle cx="12" cy="12" r="8.7" fill="#32b871" stroke="#ffffff" stroke-width="0.9"/>
+        <text x="12" y="12.3" text-anchor="middle" dominant-baseline="central"
+              font-size="9.2" font-weight="700" fill="#03301a">2.5K</text>
+    </symbol>
+    <symbol id="chip-purple" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="11.4" fill="#5b2d8e"/>
+        <circle cx="12" cy="12" r="9.8" fill="none" stroke="#ffffff" stroke-width="3.6" stroke-dasharray="7 8.4"/>
+        <circle cx="12" cy="12" r="11.4" fill="none" stroke="var(--chip-rim, rgba(0,0,0,0.35))" stroke-width="1.4"/>
+        <circle cx="12" cy="12" r="8.7" fill="#8b5cc4" stroke="#ffffff" stroke-width="0.9"/>
+        <text x="12" y="12.3" text-anchor="middle" dominant-baseline="central"
+              font-size="9.2" font-weight="700" fill="#faf7ff">50K</text>
+    </symbol>
+    <symbol id="chip-black" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="11.4" fill="#2b3240"/>
+        <circle cx="12" cy="12" r="9.8" fill="none" stroke="#eef2f7" stroke-width="3.6" stroke-dasharray="7 8.4"/>
+        <circle cx="12" cy="12" r="11.4" fill="none" stroke="var(--chip-rim, rgba(0,0,0,0.35))" stroke-width="1.4"/>
+        <circle cx="12" cy="12" r="8.7" fill="#4a5464" stroke="#eef2f7" stroke-width="0.9"/>
+        <text x="12" y="12.3" text-anchor="middle" dominant-baseline="central"
+              font-size="9.2" font-weight="700" fill="#eef2f7">10K</text>
+    </symbol>
+    <symbol id="i-up" viewBox="0 0 16 16">
+        <path d="M8 13.5V4M3.8 7.8 8 3.6l4.2 4.2" fill="none" stroke="currentColor" stroke-width="2"/>
+    </symbol>
+    <symbol id="i-trophy" viewBox="0 0 16 16">
+        <path d="M4.5 2h7v4a3.5 3.5 0 0 1-7 0V2z"/>
+        <path d="M4.5 3.2H2.4v1.3a2.2 2.2 0 0 0 2.1 2.2M11.5 3.2h2.1v1.3a2.2 2.2 0 0 1-2.1 2.2" fill="none" stroke="currentColor" stroke-width="1.3"/>
+        <path d="M8 9.5v2.4M5 14h6" fill="none" stroke="currentColor" stroke-width="1.6"/>
+    </symbol>
+</svg>
+
+<div id="scrGame" hidden>
+    <div class="table-area">
+        <div class="topline">
+            <div id="gameInfo"></div>
+            <button class="btn skip-btn" id="btnSkip" hidden>결과 보기 →</button>
+        </div>
+
+        <div class="table-mid" id="tableMid">
+        <div class="seats" id="seatGrid"></div>
+
+        <div class="board-wrap">
+            <div class="pot">POT <span id="potChip"></span><b id="potView">0</b></div>
+            <div class="pot-split" id="potSplit"></div>
+            <div class="board-slot"><div class="board" id="boardView"></div><div class="deck" id="deckView"><span class="card back"></span><span class="card back"></span><span class="card back"></span></div></div>
+            <button class="sd-timer" id="sdTimer" title="클릭하면 바로 진행">
+                <svg width="34" height="34" viewBox="0 0 36 36" aria-hidden="true">
+                    <circle class="sd-track" cx="18" cy="18" r="16"></circle>
+                    <circle class="sd-prog" id="sdProg" cx="18" cy="18" r="16"></circle>
+                </svg>
+                <span class="sd-num" id="sdNum">9</span>
+                <span class="sd-arrow">→</span>
+            </button>
+        </div>
+
+        </div>
+
+        <div class="me-panel" id="mePanel">
+            <div class="me-head" id="meHead"></div>
+            <div class="math-box" id="mathBox" hidden></div>
+            <div class="me-row">
+                <span id="meCards"></span>
+                <button class="btn math-btn" id="btnMath" title="내 패 분석 (H)">?</button>
+                <div class="actions" id="actions" hidden>
+                    <button class="btn" id="btnFold">폴드</button>
+                    <button class="btn" id="btnCall">체크</button>
+                    <div class="raise-box" id="raiseBox">
+                        <button class="preset" data-bb="1">1BB</button>
+                        <button class="preset" data-bb="2">2BB</button>
+                        <button class="preset" data-bb="3">3BB</button>
+                        <button class="preset" data-bb="4">4BB</button>
+                        <button class="preset" data-bb="5">5BB</button>
+                        <button class="preset" data-preset="pot">POT</button>
+                        <button class="preset" data-preset="allin">MAX</button>
+                        <span class="stepper">
+                            <button id="btnMinus">−</button>
+                            <span class="raise-amt" id="raiseAmt"></span>
+                            <button id="btnPlus">+</button>
+                        </span>
+                        <button class="btn" id="btnRaise">레이즈</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <aside class="log-pane">
+        <div class="pane-tabs" id="paneTabs">
+            <button class="pane-tab is-on" data-pane="log">로그</button>
+            <button class="pane-tab" data-pane="terms">용어</button>
+        </div>
+        <div class="log" id="logView"></div>
+        <div class="terms" id="termsView" hidden></div>
+        <button class="log-more" id="logMore">▼</button>
+    </aside>
+</div>
+
+<div id="fxLayer"></div>
+
+<div class="screen" id="scrStart" hidden>
+    <div class="end-box">
+        <div class="end-title">테이블 인원</div>
+        <div class="seat-pick" id="seatPick">
+            <button class="btn" data-n="2">2</button>
+            <button class="btn" data-n="3">3</button>
+            <button class="btn" data-n="4">4</button>
+            <button class="btn" data-n="5">5</button>
+            <button class="btn" data-n="6">6</button>
+            <button class="btn" data-n="7">7</button>
+            <button class="btn" data-n="8">8</button>
+            <button class="btn" data-n="9">9</button>
+        </div>
+        <div class="end-sub" id="startSub"></div>
+        <div class="start-opt">
+            난이도
+            <button class="preset" data-diff="easy">이지</button>
+            <button class="preset" data-diff="normal">노말</button>
+            <button class="preset" data-diff="hard">하드</button>
+        </div>
+        <div class="start-opt">
+            테마
+            <button class="preset" data-theme="neon">네온</button>
+            <button class="preset" data-theme="calm">차분</button>
+            <button class="preset" data-theme="light">라이트</button>
+        </div>
+        <div class="start-opt">
+            글자 크기
+            <button class="preset" data-scale="13">작게</button>
+            <button class="preset" data-scale="15">보통</button>
+            <button class="preset" data-scale="18">크게</button>
+        </div>
+        <div class="diff-hint" id="diffHint"></div>
+        <div class="start-keys">
+            폴드 <b>F</b> · 콜/체크 <b>C</b> · 레이즈 <b>R</b> · 금액 <b>W</b>/<b>S</b> · 프리셋 <b>1</b>~<b>7</b><br>
+            족보 힌트 <b>Tab</b> 누르고 있기 · 내 패 분석 <b>H</b> · 다음 핸드 <b>Space</b><br>
+            모르는 말이 나오면 오른쪽 <b>용어</b> 탭에서 찾아보세요
+        </div>
+    </div>
+</div>
+
+<div class="screen" id="scrEnd" hidden>
+    <div class="end-box">
+        <div class="end-title" id="endTitle"></div>
+        <div id="endBody"></div>
+        <button class="btn" id="btnRestart">다시 하기</button>
+    </div>
+</div>
+
+
+<pre id="testOut" style="display:none"></pre>
+
+<script>
+
+(function () {
+    'use strict';
+
+    var $ = function (id) { return document.getElementById(id); };
+
+    var cfg = { ai: 8, chips: 15000, blindEvery: 8, diff: 'normal' };
+    var speedMult = 1.5;
+    var BLIND_STEP = [1, 1.5, 2, 3, 4, 6];
+
+    // ponytail: ︎ = VS15(텍스트 표현 강제). 없으면 iOS/안드로이드가 ♥♦를 컬러 이모지로 바꿔버린다
+    function ico(id) { return '<svg class="ico"><use href="#' + id + '"/></svg>'; }
+
+    // 실제 카지노 칩 비율 1:5:25:100을 이 게임의 100 단위에 그대로 얹는다
+    var CHIP_DENOM = [[50000, 'purple'], [10000, 'black'], [2500, 'green'], [500, 'red'], [100, 'white']];
+
+    function chipTone(v) {
+        return v >= 10000 ? 'black' : v >= 2500 ? 'green' : v >= 500 ? 'red' : 'white';
+    }
+
+    // 금액을 실제로 칩으로 거슬러 준다. 큰 단위부터, max장에서 끊는다
+    function chipsFor(v, max) {
+        var out = [], left = v;
+        CHIP_DENOM.forEach(function (d) {
+            var k = Math.floor(left / d[0]);
+            left -= k * d[0];
+            for (var i = 0; i < k && out.length < max; i++) out.push(d[1]);
+        });
+        if (!out.length) out.push('white');
+        return out;
+    }
+
+    // 인덱스로 고정된 난수. 매 렌더마다 자리가 흔들리면 안 된다
+    function jit(i, salt) {
+        var x = Math.sin(i * 127.1 + salt * 311.7) * 43758.5453;
+        return x - Math.floor(x);
+    }
+
+    // ponytail: 각 잡아 쌓지 않고 흩뜨린다. animFrom 이후 칩만 날아 들어온다.
+    // 액면가를 칩에 새겼으니 장수는 정확히 거스른 결과여야 한다 - 모자란다고 채우면 합이 틀린다.
+    function chipIco(v, max, animFrom) {
+        if (v <= 0) return '';   // 올인해서 스택이 0이면 칩도 없어야 한다
+        var tones = chipsFor(v, max || 6);
+        tones.reverse();
+        var html = '';
+        tones.forEach(function (tone, i) {
+            var dx = (jit(i, 1) - 0.5) * 40;
+            var dy = (jit(i, 2) - 0.5) * 22;
+            var rot = (jit(i, 3) - 0.5) * 34;
+            var ang = jit(i, 4) * Math.PI * 2;
+            var fresh = animFrom >= 0 && i >= animFrom;
+            html += '<span class="chip-slot" style="transform:translate(-50%,-50%) translate(' +
+                dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px) rotate(' + rot.toFixed(1) + 'deg)">' +
+                '<svg class="ico chip' + (fresh ? ' anim-toss' : '') + '"' +
+                (fresh ? ' style="--tx:' + (Math.cos(ang) * 20).toFixed(0) +
+                    'px;--ty:' + (Math.sin(ang) * 20 - 16).toFixed(0) + 'px;' +
+                    'animation-delay:' + ((i - animFrom) * 55) + 'ms"' : '') +
+                '><use href="#chip-' + tone + '"/></svg></span>';
+        });
+        return '<span class="chip-stk">' + html + '</span>';
+    }
+
+    // 같은 마크업을 5곳에서 만들고 있었다
+    function amtFx(v) { return '<span class="fx-amt">' + chipIco(v, 10) + '+' + fmt(v) + '</span>'; }
+
+    var SUIT_CH = ['♠︎', '♥︎', '♦︎', '♣︎'];
+    var RANK_CH = { 2: '2', 3: '3', 4: '4', 5: '5', 6: '6', 7: '7', 8: '8', 9: '9', 10: '10', 11: 'J', 12: 'Q', 13: 'K', 14: 'A' };
+
+    function makeDeck() {
+        var d = [];
+        for (var s = 0; s < 4; s++) {
+            for (var r = 2; r <= 14; r++) d.push({ r: r, s: s });
+        }
+        return d;
+    }
+
+    function shuffle(a) {
+        for (var i = a.length - 1; i > 0; i--) {
+            var j = Math.floor(Math.random() * (i + 1));
+            var t = a[i]; a[i] = a[j]; a[j] = t;
+        }
+        return a;
+    }
+
+    function newHl() { return { bright: null, draw: null, kick: null, sdKick: null, sdKickShow: null, sdKickSeat: -1, seatCores: null }; }
+
+    var hl = newHl();
+
+    function cardKey(c) { return c.s * 15 + c.r; }
+
+    function markCards(set, cards) {
+        cards.forEach(function (c) { set[cardKey(c)] = 1; });
+        return set;
+    }
+
+    function applyDim() {
+        var els = $('scrGame').querySelectorAll('.table-area .card[data-key]');
+        Array.prototype.forEach.call(els, function (el) {
+            var k = el.getAttribute('data-key');
+            el.classList.toggle('is-dim', !!(hl.bright && !hl.bright[k]));
+            el.classList.toggle('is-draw', !!(hl.draw && hl.draw[k]));
+            el.classList.toggle('is-kicker', !!((hl.kick && hl.kick[k]) || (hl.sdKickShow && hl.sdKickShow[k])));
+        });
+    }
+
+    function showSdKick(seat) {
+        var next = hl.sdKick && hl.sdKickSeat === seat ? hl.sdKick : null;
+        if (hl.sdKickShow === next) return false;
+        hl.sdKickShow = next;
+        return true;
+    }
+
+    function hoverCore(seat) {
+        var p = P[seat];
+        if (!p || p.out || !hl.seatCores || !hl.seatCores[seat]) return;
+        var moved = hl.bright !== hl.seatCores[seat];
+        if (moved) hl.bright = hl.seatCores[seat];
+        if (showSdKick(seat) || moved) applyDim();
+    }
+
+    function meHandHint() {
+        var me = P[0];
+        if (!me || !me.hole.length || me.folded || me.out) return '';
+        if (st.board.length === 0) {
+            var a = me.hole[0], b = me.hole[1];
+            if (a.r === b.r) return '포켓페어';
+            return a.s === b.s ? '수딧' : '옵숫';
+        }
+        return handName(evalBest(me.hole.concat(st.board)));
+    }
+
+    function holeKicker(p, bf) {
+        var cat = Math.floor(bf.score / P15_5);
+        if (cat === 4 || cat === 5 || cat === 6 || cat === 8) return null;
+        var core = coreCards(bf.cards, bf.score);
+        var ks = bf.cards.filter(function (c) {
+            return core.indexOf(c) < 0 && (c === p.hole[0] || c === p.hole[1]);
+        }).sort(function (a, b) { return b.r - a.r; });
+        return ks.length ? ks[0] : null;
+    }
+
+    // ===== 내 패 수학 =====
+
+    // 아웃츠: 남은 카드 중 내 족보 등급을 올려주는 장수.
+    // "이기는 카드"가 아니라 "올라가는 카드"다 - 상대 레인지는 모른다.
+    // "등급이 오르는 카드"로 세면 보드 바닥 페어까지 아웃이 돼서 부풀려진다.
+    // 실제로 쓸 수 있는 정의: 투페어 이상, 또는 내 홀카드로 만든 탑페어.
+    function isOut(me, all, card, nowCat) {
+        var sc = evalBest(all.concat([card]));
+        var cat = Math.floor(sc / P15_5);
+        if (cat <= nowCat) return false;
+        if (cat > 1) return true;
+        var pairRank = Math.floor(sc / Math.pow(15, 4)) % 15;
+        if (me.hole[0].r !== pairRank && me.hole[1].r !== pairRank) return false;
+        var boardMax = card.r;
+        st.board.forEach(function (c) { if (c.r > boardMax) boardMax = c.r; });
+        return pairRank >= boardMax;
+    }
+
+    // ponytail: 카드 47장 x bestFive = eval5 약 6천회. 패널을 켠 동안만 돈다.
+    // 느려지면 결과를 (hole+board) 키로 캐시하면 된다.
+    function myOuts() {
+        var me = P[0];
+        if (st.board.length < 3 || st.board.length > 4) return null;
+        var all = me.hole.concat(st.board);
+        var seen = markCards({}, all);
+        var nowCat = Math.floor(evalBest(all) / P15_5);
+        var outs = 0, unseen = 0;
+        for (var su = 0; su < 4; su++) {
+            for (var r = 2; r <= 14; r++) {
+                if (seen[su * 15 + r]) continue;
+                unseen++;
+                if (isOut(me, all, { s: su, r: r }, nowCat)) outs++;
+            }
+        }
+        return { outs: outs, unseen: unseen, toCome: st.board.length === 3 ? 2 : 1 };
+    }
+
+    // 4-2 룰 근사 말고 정확히 센다
+    function improveChance(o) {
+        if (o.toCome === 1) return o.outs / o.unseen;
+        var miss = (o.unseen - o.outs) / o.unseen * ((o.unseen - o.outs - 1) / (o.unseen - 1));
+        return 1 - miss;
+    }
+
+    // Chen 점수는 플레이어가 알 이유가 없는 내부 숫자다. 별로 바꾼다.
+    function stars(k) {
+        return '<span class="stars">' + new Array(k + 1).join('★') +
+            '<i>' + new Array(6 - k).join('☆') + '</i></span>';
+    }
+
+    var PRE_TIP = [
+        '',
+        '접는 게 기본입니다. 블라인드가 싸거나 뒷자리일 때만 예외.',
+        '약한 패입니다. 돈 안 들이고 볼 수 있을 때만 참여하세요.',
+        '보통입니다. 뒷자리(딜러 근처)면 참여, 앞자리면 조심.',
+        '강한 패입니다. 대부분의 자리에서 레이즈할 만합니다.',
+        '프리미엄입니다. 어디서든 레이즈로 시작하세요.'
+    ];
+
+    // Chen 본인이 제시한 기준(9+ 아무 자리, 8 미들, 7 레이트, 5~6 뒷자리만, 그 이하 폴드)
+    function preStars(hole) {
+        var v = chen(hole);
+        return v >= 10 ? 5 : v >= 8 ? 4 : v >= 6.5 ? 3 : v >= 5 ? 2 : 1;
+    }
+
+    // 무슨 패인지 한눈에. 카드는 옆에 보이지만 관계가 안 보인다
+    function preLabel(hole) {
+        // 카드 앞면은 '10'이 맞지만 핸드 표기에선 A10이 A-1-0처럼 읽힌다. 포커 표기는 T
+        function rk(r) { return r === 10 ? 'T' : RANK_CH[r]; }
+        var a = hole[0], b = hole[1];
+        if (a.r === b.r) return '포켓 ' + rk(a.r) + rk(a.r);
+        var hi = Math.max(a.r, b.r), lo = Math.min(a.r, b.r);
+        var t = rk(hi) + rk(lo) + (a.s === b.s ? ' 수딧' : ' 옵숫');
+        return hi - lo === 1 ? t + ' 커넥터' : t;
+    }
+
+    function postStars(v) {
+        return v >= 0.84 ? 5 : v >= 0.7 ? 4 : v >= 0.58 ? 3 : v >= 0.38 ? 2 : 1;
+    }
+
+    // 완성된 족보만 보면 콤보 드로우가 1성으로 찍힌다. 아직 안 맞았을 뿐
+    // 이기러 가는 중인 패라 개선 확률을 같이 본다.
+    function postValue(me, o) {
+        var v = postStrength(me);
+        return o && o.outs ? Math.max(v, 0.3 + improveChance(o) * 0.8) : v;
+    }
+
+    // 두 장의 관계를 말로 풀어준다. 왜 좋은/나쁜 패인지가 보여야 학습이 된다
+    function holeWhy(hole) {
+        var a = hole[0], b = hole[1];
+        if (a.r === b.r) {
+            return '같은 숫자 두 장입니다. 플랍에서 트리플 이상이 될 확률은 11.8%로, ' +
+                '안 맞으면 대개 원페어 그대로 싸우게 됩니다.';
+        }
+        var hi = Math.max(a.r, b.r), lo = Math.min(a.r, b.r);
+        var gap = hi - lo - 1;
+        var parts = [];
+        parts.push(a.s === b.s
+            ? '무늬가 같아 플러시까지 갈 여지가 있습니다(리버까지 약 6.4%).'
+            : '무늬가 달라 플러시 가능성은 없습니다.');
+        if (gap === 0) parts.push('숫자가 붙어 있어 스트레이트가 잘 붙습니다.');
+        else if (gap === 1) parts.push('한 칸 떨어져 있어 스트레이트가 붙긴 하지만 덜 자주입니다.');
+        else if (hi >= 13 && lo <= 9) parts.push('두 장이 멀어 스트레이트는 기대하기 어렵고, 높은 카드 한 장 싸움이 됩니다.');
+        return parts.join(' ');
+    }
+
+    function mathHtml() {
+        var me = P[0];
+        if (!me || !me.hole.length || me.folded || me.out) return '패가 없습니다.';
+        // ponytail: 카드가 뒤집히기 전에 정답을 띄우면 딜링의 긴장이 사라진다.
+        // Tab 힌트는 이미 meReveal을 보고 있었다 - 같은 기준을 쓴다.
+        if (!meReveal) return '<div class="math-note">카드를 받는 중…</div>';
+        if (boardShownAt && Date.now() < boardShownAt) {
+            return '<div class="math-note">보드 오픈 중…</div>';
+        }
+
+        if (!st.board.length) {
+            var k = preStars(me.hole);
+            return '<div class="math-top">' + stars(k) + ' <b>' + preLabel(me.hole) + '</b></div>' +
+                '<div>' + PRE_TIP[k] + '</div>' +
+                '<div class="math-note">' + holeWhy(me.hole) + '</div>';
+        }
+
+        // 별은 드로우까지 보는데 라벨이 완성 족보만 말하면 "4성 하이카드"가 돼서 모순이다.
+        // 힌트 기능이 쓰던 myDrawInfo를 그대로 붙인다.
+        var dr = myDrawInfo();
+        var score = evalBest(me.hole.concat(st.board));
+        var name = handName(score) + (dr ? ' · ' + dr.text : '');
+        var made = Math.floor(score / P15_5) > 0;
+        var o = myOuts();
+        var head = '<div class="math-top">' + stars(postStars(postValue(me, o))) +
+            ' <b>' + name + '</b></div>';
+        if (!o) return head + '<div>카드가 다 나왔습니다. 이게 최종 패입니다.</div>';
+        if (!o.outs) {
+            return head + '<div>더 좋아질 카드가 없습니다. 지금 패로 이기거나, 상대를 접게 만들어야 합니다.</div>';
+        }
+
+        // ponytail: 초보자용이다. "아웃츠/개선/콜 부담" 같은 용어와 `A · B · C` 나열 대신
+        // 완결된 문장으로 쓴다. 숫자는 문장 안에 하나씩만.
+        var pct = Math.round(improveChance(o) * 100);
+        var body = (made ? '' : '아직 완성된 족보는 없습니다. ') +
+            '더 좋아질 카드가 <b>' + o.outs + '장</b> 남았고, ' +
+            (o.toCome === 2 ? '남은 두 장' : '마지막 한 장') +
+            ' 안에 나올 확률은 <b>' + pct + '%</b>입니다.';
+        var verdict = '';
+
+        var callAmt = st.curBet - me.bet;
+        if (st.inHand && st.actingSeat === 0 && callAmt > 0) {
+            var pay = Math.min(callAmt, me.chips);
+            // 화면에 보이는 값(반올림)으로 판정한다. 32.6 vs 33.3을 둘 다 33%로
+            // 찍어놓고 "낮으니 손해"라고 하면 읽는 사람은 모순으로 본다.
+            var need = Math.round(pay / (potTotal() + pay) * 100);
+            var tail = pct > need ? ['good', '나올 확률이 그보다 높으니 콜이 이득입니다.']
+                : pct < need ? ['bad', '나올 확률이 그보다 낮으니 콜은 손해입니다.']
+                : ['', '나올 확률과 거의 같습니다. 이득도 손해도 아닌 경계예요.'];
+            verdict = '<div class="' + tail[0] + '">콜에 드는 돈은 팟의 <b>' +
+                need + '%</b>입니다. ' + tail[1] + '</div>';
+        }
+        return head + '<div>' + body + '</div>' + verdict +
+            '<div class="math-note">상대가 뭘 들었는지는 모르는 상태의 계산입니다.</div>';
+    }
+
+    function renderMath() {
+        var on = !$('mathBox').hidden;
+        $('btnMath').classList.toggle('is-on', on);
+        if (!on) return;
+        // ponytail: 보드가 뒤집히는 동안은 "비우지" 말고 "갱신을 멈춘다".
+        // 직전 스트리트 분석이 그대로 남아서 깜빡임 없이 이어진다.
+        // 딜링(새 핸드) 때는 남길 게 없으니 mathHtml이 안내 문구를 낸다.
+        if (boardShownAt && Date.now() < boardShownAt && $('mathBox').innerHTML) return;
+        // 패널이 높아지면 그 위에 붙어 있던 말풍선도 따라가야 한다.
+        // renderAll 경로는 뒤에 repositionFx가 있지만 dealStreet/토글 경로엔 없다.
+        var box = $('mathBox');
+        var before = box.offsetHeight;
+        box.innerHTML = mathHtml();
+        if (box.offsetHeight !== before) repositionFx();
+    }
+
+    function toggleMath() {
+        $('mathBox').hidden = !$('mathBox').hidden;
+        try { localStorage.setItem('holdem.math', $('mathBox').hidden ? '0' : '1'); } catch (e) { /* 무시 */ }
+        renderMath();
+        repositionFx();
+    }
+
+    function myKickerCard() {
+        var me = P[0];
+        if (!st.board.length || !me.hole.length) return null;
+        return holeKicker(me, bestFive(me.hole.concat(st.board)));
+    }
+
+    function hintText(drawTxt, kicker) {
+        var t = meHandHint();
+        var me = P[0];
+        if (kicker) t += ' · 키커';
+        if (drawTxt) t += ' · ' + drawTxt;
+        if (st.inHand && st.actingSeat === 0) {
+            var callAmt = st.curBet - me.bet;
+            if (callAmt > 0) {
+                var pay = Math.min(callAmt, me.chips);
+                t += ' · POT ' + Math.round(pay / (potTotal() + pay) * 100) + '%';
+            }
+        }
+        return t;
+    }
+
+    var hintEl = null;
+
+    function myCoreSet() {
+        var me = P[0];
+        var set = {};
+        if (!st.board.length) {
+            markCards(set, me.hole);
+            return set;
+        }
+        var all = me.hole.concat(st.board);
+        var bf = bestFive(all);
+        markCards(set, coreCards(bf.cards, bf.score));
+        return set;
+    }
+
+    function myDrawInfo() {
+        if (st.board.length < 3 || st.board.length > 4) return null;
+        var me = P[0];
+        var all = me.hole.concat(st.board);
+        var cat = Math.floor(evalBest(all) / P15_5);
+        var parts = [];
+        var set = {};
+
+        if (cat < 5) {
+            var bySuit = [[], [], [], []];
+            all.forEach(function (c) { bySuit[c.s].push(c); });
+            for (var s = 0; s < 4; s++) {
+                if (bySuit[s].length === 4 && (me.hole[0].s === s || me.hole[1].s === s)) {
+                    parts.push('플러시 드로우');
+                    markCards(set, bySuit[s]);
+                }
+            }
+        }
+
+        if (cat < 4) {
+            var have = {};
+            var boardHave = {};
+            all.forEach(function (c) { have[c.r] = 1; if (c.r === 14) have[1] = 1; });
+            st.board.forEach(function (c) { boardHave[c.r] = 1; if (c.r === 14) boardHave[1] = 1; });
+            var fills = [];
+            var runRanks = {};
+            for (var x = 1; x <= 14; x++) {
+                if (have[x]) continue;
+                for (var lo = Math.max(1, x - 4); lo <= Math.min(10, x); lo++) {
+                    var ok = true;
+                    var useMine = false;
+                    for (var w = lo; w < lo + 5; w++) {
+                        if (w === x) continue;
+                        if (!have[w]) { ok = false; break; }
+                        if (!boardHave[w]) useMine = true;
+                    }
+                    if (ok && useMine) {
+                        if (fills.indexOf(x) < 0) fills.push(x);
+                        for (var w2 = lo; w2 < lo + 5; w2++) {
+                            if (w2 !== x) runRanks[w2 === 1 ? 14 : w2] = 1;
+                        }
+                    }
+                }
+            }
+            if (fills.length) {
+                parts.push(fills.length >= 2 ? '스트레이트 드로우' : '것샷');
+                Object.keys(runRanks).forEach(function (rk) {
+                    var r = Number(rk);
+                    for (var i = 0; i < all.length; i++) {
+                        if (all[i].r === r) { set[cardKey(all[i])] = 1; break; }
+                    }
+                });
+            }
+        }
+
+        if (!parts.length) return null;
+        return { text: parts.join(' · '), set: set };
+    }
+
+    function boardInfo() {
+        var b = st.board;
+        var cnt = {};
+        var bySuit = [[], [], [], []];
+        b.forEach(function (c) {
+            cnt[c.r] = (cnt[c.r] || 0) + 1;
+            bySuit[c.s].push(c);
+        });
+
+        var parts = [];
+        var core = {};
+        var draw = {};
+
+        function mark(set, r) {
+            b.forEach(function (c) { if (c.r === r) set[cardKey(c)] = 1; });
+        }
+
+        var ranks = Object.keys(cnt).map(Number).sort(function (x, y) { return y - x; });
+        var quads = ranks.filter(function (r) { return cnt[r] === 4; });
+        var trips = ranks.filter(function (r) { return cnt[r] === 3; });
+        var pairs = ranks.filter(function (r) { return cnt[r] === 2; });
+
+        var pairing = quads.length ? ['포카드', quads[0]]
+            : trips.length && pairs.length ? ['풀하우스', trips[0], pairs[0]]
+            : trips.length ? ['트리플', trips[0]]
+            : pairs.length === 2 ? ['투페어', pairs[0], pairs[1]]
+            : pairs.length === 1 ? ['원페어', pairs[0]]
+            : null;
+        if (pairing) {
+            parts.push(pairing[0]);
+            pairing.slice(1).forEach(function (r) { mark(core, r); });
+        }
+
+        var uniq = [];
+        var seen = {};
+        b.forEach(function (c) {
+            if (!seen[c.r]) { seen[c.r] = 1; uniq.push(c.r); }
+        });
+        if (seen[14] && !seen[1]) { seen[1] = 1; uniq.push(1); }
+        uniq.sort(function (x, y) { return x - y; });
+
+        var run = [];
+        var best = [];
+        for (var i = 0; i < uniq.length; i++) {
+            if (i && uniq[i] === uniq[i - 1] + 1) run.push(uniq[i]);
+            else run = [uniq[i]];
+            if (run.length > best.length) best = run.slice();
+        }
+        if (best.length >= 4) {
+            var made = best.length >= 5;
+            parts.push(made ? '스트레이트' : '스트레이트 드로우');
+            best.forEach(function (r) { mark(made ? core : draw, r === 1 ? 14 : r); });
+        }
+
+        for (var s = 0; s < 4; s++) {
+            if (bySuit[s].length >= 5) {
+                parts.push('플러시');
+                markCards(core, bySuit[s]);
+            } else if (bySuit[s].length >= 4) {
+                parts.push('플러시 드로우');
+                markCards(draw, bySuit[s]);
+            }
+        }
+
+        return {
+            text: parts.length ? parts.join(' · ') : '드라이 보드',
+            core: Object.keys(core).length ? core : null,
+            draw: Object.keys(draw).length ? draw : null
+        };
+    }
+
+    function hintMode() {
+        var me = P[0];
+        if (st.over || !st.inHand) return '';
+        if (me && meReveal && me.hole.length > 0 && !me.folded && !me.out) return 'me';
+        return st.board.length >= 3 ? 'board' : '';
+    }
+
+    function canHint() { return hintMode() !== ''; }
+
+    function showHint() {
+        if (!canHint()) return;
+        clearMeThink();
+        if (!hintEl) {
+            hintEl = document.createElement('div');
+            hintEl.className = 'hand-hint';
+            $('fxLayer').appendChild(hintEl);
+        }
+        placeAbove(hintEl, $('mePanel'), 4);
+        updateHint();
+        void hintEl.offsetWidth;
+        hintEl.classList.add('is-visible');
+        applyDim();
+    }
+
+    function updateHint() {
+        if (hintMode() === 'board') {
+            var bi = boardInfo();
+            hl.draw = bi.draw;
+            hl.kick = null;
+            hl.bright = bi.core;
+            hintEl.textContent = bi.text;
+            return;
+        }
+        var dr = myDrawInfo();
+        var kick = myKickerCard();
+        hl.draw = dr ? dr.set : null;
+        hl.kick = null;
+        if (kick) {
+            hl.kick = {};
+            hl.kick[cardKey(kick)] = 1;
+        }
+        hl.bright = myCoreSet();
+        hintEl.textContent = hintText(dr ? dr.text : '', kick);
+    }
+
+    function hideHint() {
+        var had = hl.bright || hl.draw || hl.kick;
+        hl.draw = null;
+        hl.kick = null;
+        if (!hl.seatCores) hl.bright = null;
+        if (had) applyDim();
+        if (hintEl) {
+            var el = hintEl;
+            hintEl = null;
+            el.classList.remove('is-visible');
+            setTimeout(function () { el.remove(); }, 220);
+        }
+        if (!quiet() && !$('actions').hidden) meThinkTimer = setTimeout(showMeThink, 400);
+    }
+
+    function unhoverCore() {
+        if (!hl.seatCores || !st.winners || !st.winners.length) return;
+        var seat = st.winners[0];
+        var s = hl.seatCores[seat];
+        var moved = s && hl.bright !== s;
+        if (moved) hl.bright = s;
+        if (showSdKick(seat) || moved) applyDim();
+    }
+
+    // ponytail: plain=로그용. 하이라이트 클래스를 아예 안 붙인다(CSS로 되돌릴 필요 없음)
+    function cardHtml(c, cls, delayMs, plain) {
+        var red = c.s === 1 || c.s === 2;
+        var key = cardKey(c);
+        var hlc = plain ? '' :
+            (hl.bright && !hl.bright[key] ? ' is-dim' : '') +
+            (hl.draw && hl.draw[key] ? ' is-draw' : '') +
+            ((hl.kick && hl.kick[key]) || (hl.sdKickShow && hl.sdKickShow[key]) ? ' is-kicker' : '');
+        return '<span class="card' + (red ? ' red' : '') + hlc + (cls || '') + '" data-key="' + key + '"' +
+            (delayMs ? ' style="animation-delay:' + delayMs + 'ms"' : '') +
+            '><i>' + SUIT_CH[c.s] + '</i>' + RANK_CH[c.r] + '</span>';
+    }
+
+    function coreCards(combo, score) {
+        var cat = Math.floor(score / P15_5);
+        if (cat === 4 || cat === 5 || cat === 6 || cat === 8) return combo;
+        var byRank = {};
+        combo.forEach(function (c) { byRank[c.r] = (byRank[c.r] || []).concat([c]); });
+        var groups = Object.keys(byRank).map(function (r) { return byRank[r]; });
+        function ofSize(n) { return groups.filter(function (g) { return g.length === n; }); }
+        if (cat === 7) return ofSize(4)[0];
+        if (cat === 3) return ofSize(3)[0];
+        if (cat === 2) { var ps = ofSize(2); return ps[0].concat(ps[1]); }
+        if (cat === 1) return ofSize(2)[0];
+        return [combo.slice().sort(function (a, b) { return b.r - a.r; })[0]];
+    }
+
+    function bestFive(cards) {
+        var n = cards.length;
+        if (n <= 5) return { score: eval5(cards), cards: cards.slice() };
+        var best = -1;
+        var bestArr = null;
+        for (var m = 0; m < (1 << n); m++) {
+            var bits = 0, mm = m;
+            while (mm) { bits += mm & 1; mm >>= 1; }
+            if (bits !== 5) continue;
+            var arr = [];
+            for (var i = 0; i < n; i++) if (m & (1 << i)) arr.push(cards[i]);
+            var s = eval5(arr);
+            if (s > best) { best = s; bestArr = arr; }
+        }
+        return { score: best, cards: bestArr };
+    }
+
+    function flipHtml(c, raw) {
+        if (raw < -60) return cardHtml(c);
+        var d = Math.max(0, Math.round(raw));
+        return '<span class="card-stack">' + cardHtml(c, ' anim-flip', d) +
+            '<span class="card back" style="animation: back-out 0.15s ease ' + d + 'ms forwards"></span></span>';
+    }
+
+    function backHtml(delayMs) {
+        return '<span class="card back' + (delayMs ? ' anim-deal' : '') + '"' +
+            (delayMs ? ' style="animation-delay:' + delayMs + 'ms"' : '') + '></span>';
+    }
+
+    var P15_5 = Math.pow(15, 5);
+
+    function eval5(cs) {
+        var ranks = cs.map(function (c) { return c.r; }).sort(function (a, b) { return b - a; });
+        var flush = cs.every(function (c) { return c.s === cs[0].s; });
+        var cnt = {};
+        ranks.forEach(function (r) { cnt[r] = (cnt[r] || 0) + 1; });
+        var uniq = Object.keys(cnt).map(Number).sort(function (a, b) { return b - a; });
+
+        var straightHigh = 0;
+        if (uniq.length === 5) {
+            if (uniq[0] - uniq[4] === 4) straightHigh = uniq[0];
+            else if (uniq[0] === 14 && uniq[1] === 5 && uniq[4] === 2) straightHigh = 5;
+        }
+
+        var groups = uniq.slice().sort(function (a, b) { return (cnt[b] - cnt[a]) || (b - a); });
+
+        var cat, tb;
+        if (straightHigh && flush) { cat = 8; tb = [straightHigh]; }
+        else if (cnt[groups[0]] === 4) { cat = 7; tb = [groups[0], groups[1]]; }
+        else if (cnt[groups[0]] === 3 && groups.length > 1 && cnt[groups[1]] >= 2) { cat = 6; tb = [groups[0], groups[1]]; }
+        else if (flush) { cat = 5; tb = ranks; }
+        else if (straightHigh) { cat = 4; tb = [straightHigh]; }
+        else if (cnt[groups[0]] === 3) { cat = 3; tb = [groups[0], groups[1], groups[2]]; }
+        else if (cnt[groups[0]] === 2 && groups.length > 1 && cnt[groups[1]] === 2) { cat = 2; tb = [groups[0], groups[1], groups[2]]; }
+        else if (cnt[groups[0]] === 2) { cat = 1; tb = [groups[0], groups[1], groups[2], groups[3]]; }
+        else { cat = 0; tb = ranks; }
+
+        var s = cat;
+        for (var i = 0; i < 5; i++) s = s * 15 + (tb[i] || 0);
+        return s;
+    }
+
+    function evalBest(cards) { return bestFive(cards).score; }
+
+    var CAT_NAME = ['하이카드', '원페어', '투페어', '트리플', '스트레이트', '플러시', '풀하우스', '포카드', '스트레이트 플러시'];
+
+    function handName(score) {
+        var cat = Math.floor(score / P15_5);
+        if (cat === 8) {
+            var high = Math.floor(score / Math.pow(15, 4)) % 15;
+            if (high === 14) return '로열 스트레이트 플러시';
+        }
+        return CAT_NAME[cat];
+    }
+
+    function buildPots(ps) {
+        var pots = [];
+        var rem = ps.map(function (p) { return { p: p, t: p.totalBet }; });
+        for (;;) {
+            var pos = rem.filter(function (x) { return x.t > 0; });
+            if (!pos.length) break;
+            var m = Math.min.apply(null, pos.map(function (x) { return x.t; }));
+            var amt = 0;
+            var elig = [];
+            pos.forEach(function (x) {
+                x.t -= m;
+                amt += m;
+                if (!x.p.folded) elig.push(x.p);
+            });
+            pots.push({ amt: amt, elig: elig, all: pos.map(function (x) { return x.p; }), each: m });
+        }
+        return pots;
+    }
+
+    function fmt(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+
+    function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+
+    function round100(n) { return Math.max(100, Math.round(n / 100) * 100); }
+
+    var SIM = location.search.indexOf('sim') >= 0;
+    var TESTQ = location.search.indexOf('test') >= 0;
+
+    var fastForward = false;
+
+    function quiet() { return SIM || fastForward; }
+
+    var P = [];
+    var session = 0;
+    var simErrors = 0;
+    var simActs = 0, simHumanActs = 0, simStreets = 0;
+
+    var st = {
+        hand: 0, level: 0, sb: 100, bb: 200,
+        dealer: 0, sbSeat: -1, bbSeat: -1,
+        deck: [], board: [],
+        street: '', pot: 0, curBet: 0, minRaise: 0,
+        actor: 0, actingSeat: -1,
+        inHand: false, over: true,
+        capped: false, lastAgg: -1,
+        winners: [], wasShowdown: false
+    };
+
+    function dly(a, b) {
+        if (quiet()) return 1;
+        return Math.round((a + Math.random() * (b - a)) / speedMult);
+    }
+
+    var pending = [];
+
+    function later(fn, ms) {
+        var s = session;
+        var t = {};
+        t.run = function () {
+            var i = pending.indexOf(t);
+            if (i >= 0) pending.splice(i, 1);
+            if (s === session && !st.over) fn();
+        };
+        t.id = setTimeout(t.run, ms);
+        pending.push(t);
+    }
+
+    function flushLater() {
+        pending.forEach(function (t) {
+            clearTimeout(t.id);
+            t.id = setTimeout(t.run, 1);
+        });
+    }
+
+    function notOut(p) { return !p.out; }
+
+    function inHand(p) { return !p.out && !p.folded; }
+
+    function canAct(p) { return inHand(p) && !p.allIn; }
+
+    function sumBets() {
+        return P.reduce(function (a, p) { return a + p.bet; }, 0);
+    }
+
+    function potTotal() { return st.pot + sumBets(); }
+
+    var FLY_MS = 450;
+
+    function shownChips(p) { return Math.max(0, p.chips - (lag.seat[p.seat] || 0)); }
+
+    var lag = { pot: 0, seat: {} };
+
+    function clearLag() { lag.pot = 0; lag.seat = {}; }
+
+    function lagAdd(key, amt, ms) {
+        if (quiet() || amt <= 0) return;
+        if (key === 'pot') lag.pot += amt;
+        else lag.seat[key] = (lag.seat[key] || 0) + amt;
+        setTimeout(function () {
+            if (key === 'pot') lag.pot = Math.max(0, lag.pot - amt);
+            else lag.seat[key] = Math.max(0, (lag.seat[key] || 0) - amt);
+            renderAll();
+        }, ms);
+    }
+
+    function flyBlind(p) {
+        fly(amtFx(p.bet), boxAnchor(p), $('potView'), { absorb: true, rot: Math.random() * 90 - 45 });
+    }
+
+    function flyPay(p, pay) {
+        if (quiet() || pay <= 0) return;
+        fly(amtFx(pay), boxAnchor(p), $('potView'), { absorb: true, rot: Math.random() * 90 - 45 });
+        lagAdd('pot', pay, FLY_MS);
+    }
+
+    function nextSeat(from, pred) {
+        for (var i = 1; i <= P.length; i++) {
+            var p = P[(from + i) % P.length];
+            if (pred(p)) return p.seat;
+        }
+        return -1;
+    }
+
+    // ponytail: SIM 모드에선 내 좌석도 AI가 대신 둔다(proceed의 `!SIM`). 그래서 필요함
+    function makePersona() {
+        function rr(a, b) { return a + Math.random() * (b - a); }
+        return { loose: rr(-0.08, 0.12), aggr: rr(0.25, 0.6), bluff: rr(0.04, 0.12), noise: 0.12 };
+    }
+
+    var ROSTER = [
+        { name: '동현', tier: 'hard', p: { loose: -0.22, aggr: 0.78, bluff: 0.05, noise: 0.02 } },
+        { name: '세아', tier: 'hard', p: { loose: -0.08, aggr: 0.66, bluff: 0.28, noise: 0.03 } },
+        { name: '현우', tier: 'hard', p: { loose: -0.12, aggr: 0.56, bluff: 0.12, noise: 0.02 } },
+        { name: '윤아', tier: 'hard', p: { loose: -0.04, aggr: 0.9, bluff: 0.16, noise: 0.03 } },
+        { name: '보라', tier: 'normal', p: { loose: 0.28, aggr: 0.9, bluff: 0.3, noise: 0.08 } },
+        { name: '준호', tier: 'normal', p: { loose: 0.24, aggr: 0.1, bluff: 0, noise: 0.07 } },
+        { name: '지훈', tier: 'normal', p: { loose: 0, aggr: 0.5, bluff: 0.08, noise: 0.06 } },
+        { name: '다은', tier: 'normal', p: { loose: -0.06, aggr: 0.64, bluff: 0.24, noise: 0.05 } },
+        { name: '태양', tier: 'normal', p: { loose: -0.18, aggr: 0.18, bluff: 0, noise: 0.06 } },
+        { name: '시우', tier: 'normal', p: { loose: 0.18, aggr: 0.72, bluff: 0.14, noise: 0.12 } },
+        { name: '민수', tier: 'easy', p: { loose: 0.18, aggr: 0.2, bluff: 0, noise: 0.14 } },
+        { name: '예린', tier: 'easy', p: { loose: 0.14, aggr: 0.32, bluff: 0.02, noise: 0.18 } },
+        { name: '건우', tier: 'easy', p: { loose: 0.26, aggr: 0.58, bluff: 0.06, noise: 0.14 } },
+        { name: '소율', tier: 'easy', p: { loose: 0.1, aggr: 0.3, bluff: 0.02, noise: 0.12 } },
+        { name: '재민', tier: 'easy', p: { loose: -0.12, aggr: 0.14, bluff: 0, noise: 0.1 } },
+        { name: '채원', tier: 'easy', p: { loose: 0.06, aggr: 0.24, bluff: 0.02, noise: 0.11 } }
+    ];
+
+
+    // 게임이 화면에 띄우는 말은 전부 여기 있어야 한다. 찾아볼 데가 없으면 용어가 아니라 암호다.
+    var GLOSSARY = [
+        ['족보 (센 순서)', [
+            ['하이카드', '아무것도 안 맞은 상태. 가장 높은 카드 한 장으로 비교합니다.'],
+            ['원페어', '같은 숫자 두 장.'],
+            ['투페어', '같은 숫자 두 장짜리가 두 벌.'],
+            ['트리플', '같은 숫자 세 장. 셋(set) 또는 트립스라고도 부릅니다.'],
+            ['스트레이트', '숫자가 5장 연속. 무늬는 상관없습니다. A는 맨 위(10-J-Q-K-A)와 맨 아래(A-2-3-4-5) 양쪽에 쓸 수 있습니다.'],
+            ['플러시', '같은 무늬 5장. 숫자가 연속일 필요는 없습니다.'],
+            ['풀하우스', '트리플 + 원페어.'],
+            ['포카드 (쿼즈)', '같은 숫자 네 장. 영어로 quads라 쿼즈라고도 부릅니다.'],
+            ['스트레이트 플러시', '같은 무늬로 5장 연속.'],
+            ['로열 스트레이트 플러시', '10-J-Q-K-A가 같은 무늬. 가장 높은 족보입니다.']
+        ]],
+        ['드로우 (아직 완성 전)', [
+            ['드로우', '아직 완성은 안 됐지만, 카드가 더 오면 완성되는 상태.'],
+            ['플러시 드로우', '같은 무늬 4장. 한 장만 더 오면 플러시입니다. 기회가 9장 남아 있습니다.'],
+            ['스트레이트 드로우 (양차)', '연속 4장이라 양쪽 끝 어느 쪽이 와도 스트레이트. 기회가 8장으로 것샷의 두 배입니다. 예) 6-7-8-9는 5나 10.'],
+            ['것샷 (인사이드)', '가운데가 비어서 딱 한 숫자만 채워야 스트레이트. 기회가 4장뿐입니다. 예) 6-7-□-9-10은 8만.'],
+            ['백도어', '두 장이 더 와야 완성되는 먼 드로우. 확률이 낮습니다.']
+        ]],
+        ['액션', [
+            ['체크', '돈을 걸지 않고 넘기기. 앞에 베팅이 없을 때만 됩니다.'],
+            ['콜', '앞사람이 건 만큼 맞춰 내기.'],
+            ['레이즈', '앞사람보다 더 걸기.'],
+            ['리레이즈', '레이즈에 다시 레이즈로 맞받기.'],
+            ['폴드', '패를 접고 이번 판에서 빠지기. 이미 낸 돈은 돌려받지 못합니다.'],
+            ['올인', '가진 칩을 전부 걸기. 더 낼 돈이 없으면 사이드팟이 생깁니다.']
+        ]],
+        ['판 진행', [
+            ['프리플랍', '공용 카드가 깔리기 전, 내 카드 두 장만 보고 하는 첫 베팅.'],
+            ['플랍', '공용 카드 3장이 한 번에 깔리는 단계.'],
+            ['턴', '네 번째 공용 카드.'],
+            ['리버', '다섯 번째이자 마지막 공용 카드.'],
+            ['쇼다운', '남은 사람들이 패를 공개해 승부를 가리는 것.'],
+            ['딜러 버튼 (D)', '그 판의 기준 자리. 마지막에 액션해서 가장 유리합니다. 매 판 한 칸씩 돕니다.'],
+            ['스몰 블라인드 (SB)', '딜러 왼쪽 자리. 카드를 보기도 전에 강제로 내는 돈.'],
+            ['빅 블라인드 (BB)', 'SB의 두 배를 강제로 냅니다. 대신 프리플랍에서 마지막에 액션합니다.'],
+            ['헤즈업', '둘만 남은 상태. 약한 패로도 싸워야 해서 기준이 헐거워집니다.'],
+            ['버스트', '칩을 다 잃고 탈락하는 것.']
+        ]],
+        ['돈 계산', [
+            ['팟', '그 판에 쌓인 돈 전부.'],
+            ['사이드팟', '누가 올인해서 더 못 낼 때, 남은 사람들끼리 따로 쌓는 팟. 올인한 사람은 이 팟을 가져갈 자격이 없습니다.'],
+            ['아웃츠', '내 패를 이기는 패로 만들어줄, 아직 안 나온 카드의 장수.'],
+            ['팟 오즈', '콜에 드는 돈이 팟에서 차지하는 비율. 이길 확률이 이보다 높으면 길게 봐서 이득입니다.'],
+            ['찹', '같은 족보로 비겨서 팟을 나눠 갖는 것.'],
+            ['칩 색', '금액에 따라 칩 색이 바뀝니다. 흰색은 500 미만, 빨강 500~2,500, 초록 2,500~10,000, 검정 10,000 이상. 실제 카지노에서 쓰는 1:5:25:100 비율 그대로입니다.']
+        ]],
+        ['승부를 가르는 것', [
+            ['키커', '족보에 안 쓰인 나머지 카드. 같은 족보끼리 붙으면 이걸로 갈립니다.'],
+            ['넛츠', '그 보드에서 나올 수 있는 가장 센 패. 질 수 없는 패입니다.'],
+            ['블러프', '약한 패로 센 척해서 상대를 접게 만드는 것.'],
+            ['폴드 에퀴티', '상대가 접어줄 가능성에서 나오는 이득. 절대 안 접는 상대에겐 블러프가 안 통합니다.'],
+            ['배드 비트', '이기고 있다가 마지막 카드에 역전당하는 것.']
+        ]],
+        ['내 두 장', [
+            ['포켓페어', '내 두 장이 같은 숫자. 플랍에서 트리플이 될 확률은 11.8%입니다.'],
+            ['수딧', '내 두 장이 같은 무늬. 플러시 가능성이 붙습니다.'],
+            ['옵숫', '내 두 장의 무늬가 다름.'],
+            ['커넥터', '내 두 장의 숫자가 연속. 스트레이트가 잘 붙습니다.']
+        ]],
+        ['상대 읽기', [
+            ['참여율 (VPIP)', '돈을 넣고 판에 참여한 비율. 높으면 아무 패나 치는 루즈, 낮으면 좋은 패만 치는 타이트입니다.'],
+            ['공격', '액션 중 레이즈·올인의 비율. 높으면 어그레시브해서 잘 안 접습니다.']
+        ]]
+    ];
+
+    var DIFF_NAME = { easy: '이지', normal: '노말', hard: '하드' };
+
+    // 난이도별 착석 패턴. 로스터가 하드4/노멀6/이지6뿐이라 "전원 하드"는 불가능하므로
+    // 패턴을 돌려 뽑고, 원하는 티어가 동나면 남은 티어에서 채운다.
+    var DIFF_MIX = {
+        easy: ['easy', 'easy', 'easy', 'normal'],
+        normal: ['normal', 'easy', 'hard', 'normal', 'easy', 'normal', 'hard', 'easy'],
+        hard: ['hard', 'normal', 'hard', 'normal', 'hard', 'normal', 'hard', 'normal']
+    };
+
+    function pickRoster(count, diff) {
+        var pool = { hard: [], normal: [], easy: [] };
+        ROSTER.forEach(function (c) { pool[c.tier].push(c); });
+        Object.keys(pool).forEach(function (t) { shuffle(pool[t]); });
+
+        var pat = DIFF_MIX[diff] || DIFF_MIX.normal;
+        var fallback = diff === 'easy' ? ['easy', 'normal', 'hard'] : ['hard', 'normal', 'easy'];
+        var picks = [];
+        for (var i = 0; picks.length < count; i++) {
+            var want = pat[i % pat.length];
+            if (!pool[want].length) {
+                want = fallback.filter(function (t) { return pool[t].length; })[0];
+                if (!want) break;
+            }
+            picks.push(pool[want].pop());
+        }
+        return shuffle(picks);
+    }
+
+    function chen(hole) {
+        var a = hole[0], b = hole[1];
+        var hi = Math.max(a.r, b.r), lo = Math.min(a.r, b.r);
+        var pts = hi === 14 ? 10 : hi === 13 ? 8 : hi === 12 ? 7 : hi === 11 ? 6 : hi / 2;
+        if (a.r === b.r) return Math.max(5, pts * 2);
+        if (a.s === b.s) pts += 2;
+        var gap = hi - lo - 1;
+        pts -= gap === 0 ? 0 : gap === 1 ? 1 : gap === 2 ? 2 : gap === 3 ? 4 : 5;
+        if (gap <= 1 && hi < 12) pts += 1;
+        return pts;
+    }
+
+    function straightDrawBonus(all) {
+        var uniq = [];
+        var seen = {};
+        all.forEach(function (c) {
+            if (!seen[c.r]) { seen[c.r] = true; uniq.push(c.r); }
+            if (c.r === 14 && !seen[1]) { seen[1] = true; uniq.push(1); }
+        });
+        uniq.sort(function (x, y) { return x - y; });
+        var run = 1, bestRun = 1;
+        for (var i = 1; i < uniq.length; i++) {
+            run = uniq[i] === uniq[i - 1] + 1 ? run + 1 : 1;
+            bestRun = Math.max(bestRun, run);
+        }
+        if (bestRun >= 4) return 0.1;
+        for (var j = 0; j + 3 < uniq.length; j++) {
+            if (uniq[j + 3] - uniq[j] <= 4) return 0.04;
+        }
+        return 0;
+    }
+
+    function postStrength(p) {
+        var all = p.hole.concat(st.board);
+        var s = evalBest(all);
+        var cat = Math.floor(s / P15_5);
+        var base = [0.12, 0.42, 0.62, 0.74, 0.84, 0.88, 0.93, 0.97, 0.99][cat];
+        if (cat === 1) {
+            var pairRank = Math.floor(s / Math.pow(15, 4)) % 15;
+            var boardMax = Math.max.apply(null, st.board.map(function (c) { return c.r; }));
+            var usesHole = p.hole[0].r === pairRank || p.hole[1].r === pairRank;
+            if (!usesHole) base = 0.3;
+            else if (pairRank >= boardMax) base = 0.55;
+            else base = 0.42;
+        }
+        if (st.board.length < 5) {
+            var suitCnt = [0, 0, 0, 0];
+            all.forEach(function (c) { suitCnt[c.s]++; });
+            if (Math.max.apply(null, suitCnt) === 4) base += 0.14;
+            base += straightDrawBonus(all);
+        }
+        return Math.min(base, 0.99);
+    }
+
+    var logEl;
+
+    function log(html, cls) {
+        var d = document.createElement('div');
+        if (cls) d.className = cls;
+        d.innerHTML = html;
+        var atBottom = logEl.scrollHeight - logEl.scrollTop - logEl.clientHeight < 30;
+        logEl.appendChild(d);
+        while (logEl.childNodes.length > 400) logEl.removeChild(logEl.firstChild);
+        if (atBottom) logEl.scrollTop = logEl.scrollHeight;
+        else if (!logEl.hidden) setLogMore(true);
+    }
+
+    // 처음 열 때만 만든다
+    function buildTerms() {
+        var html = '';
+        GLOSSARY.forEach(function (grp) {
+            html += '<div class="term-grp">' + grp[0] + '</div>';
+            grp[1].forEach(function (t) {
+                html += '<button class="term">' + t[0] + '</button>' +
+                    '<div class="term-def" hidden>' + t[1] + '</div>';
+            });
+        });
+        $('termsView').innerHTML = html;
+    }
+
+    function showPane(which) {
+        var terms = which === 'terms';
+        if (terms && !$('termsView').innerHTML) buildTerms();
+        $('logView').hidden = terms;
+        $('termsView').hidden = !terms;
+        Array.prototype.forEach.call($('paneTabs').children, function (b) {
+            b.classList.toggle('is-on', b.dataset.pane === which);
+        });
+        if (terms) setLogMore(false);
+        else logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function setLogMore(on) {
+        $('logMore').classList.toggle('is-visible', on);
+        $('logMore').parentNode.classList.toggle('is-more', on);
+    }
+
+    function seatAnchor(p) {
+        if (p.isHuman) return $('meCards');
+        var host = seatEls[p.seat];
+        return (host && host.querySelector('.seat-cards')) || host;
+    }
+
+    function asRect(r) { return { getBoundingClientRect: function () { return r; } }; }
+
+    function boxAnchor(p) {
+        return p.isHuman ? $('mePanel') : seatEls[p.seat];
+    }
+
+    function badgeAnchor(seat) {
+        var host = P[seat] && P[seat].isHuman ? $('meHead') : seatEls[seat];
+        return (host && host.querySelector('.badge-slot')) || (P[seat] ? seatAnchor(P[seat]) : null);
+    }
+
+    function fly(html, fromEl, toEl, o) {
+        o = o || {};
+        if (quiet() || !fromEl || !toEl) return;
+        var f = fromEl.getBoundingClientRect();
+        var t = toEl.getBoundingClientRect();
+        var fx = f.left + f.width / 2;
+        var fy = f.top + f.height / 2;
+        var dx = (t.left + t.width / 2) - fx;
+        var dy = (t.top + t.height / 2) - fy;
+        var el = document.createElement('div');
+        el.className = 'fx';
+        el.innerHTML = html;
+        el.style.left = fx + 'px';
+        el.style.top = fy + 'px';
+        el.style.transform = 'translate(-50%, -50%)';
+        if (o.delay) el.style.transitionDelay = o.delay + 'ms';
+        $('fxLayer').appendChild(el);
+        void el.offsetWidth;
+        el.style.transform = 'translate(calc(-50% + ' + dx + 'px), calc(-50% + ' + dy + 'px))' +
+            (o.rot ? ' rotate(' + o.rot + 'deg)' : '');
+        if (o.absorb) {
+            setTimeout(function () {
+                el.style.transition = 'transform 0.22s ease, opacity 0.22s ease';
+                el.style.transform += ' scale(0.3)';
+                el.style.opacity = '0';
+            }, (o.delay || 0) + 460);
+            setTimeout(function () { el.remove(); }, (o.delay || 0) + 740);
+        } else if (o.hold) {
+            setTimeout(function () { el.style.opacity = '0'; }, (o.delay || 0) + 450 + o.hold);
+            setTimeout(function () { el.remove(); }, (o.delay || 0) + 450 + o.hold + 500);
+        } else {
+            if (o.fade) setTimeout(function () { el.style.opacity = '0'; }, (o.delay || 0) + 160);
+            setTimeout(function () { el.remove(); }, 650 + (o.delay || 0));
+        }
+    }
+
+
+    function shuffleFx(holdMs) {
+        if (quiet()) return;
+        var d = $('deckView');
+        d.classList.add('is-visible', 'anim-shuffle');
+        setTimeout(function () { d.classList.remove('anim-shuffle'); }, 900);
+        setTimeout(function () { d.classList.remove('is-visible'); }, holdMs || 1100);
+    }
+
+    function placeAbove(el, anchor, gap) {
+        var r = anchor.getBoundingClientRect();
+        el.style.left = (r.left + r.width / 2) + 'px';
+        el.style.top = (r.top - gap) + 'px';
+        el._anchor = anchor;
+        el._gap = gap;
+    }
+
+    function repositionFx() {
+        Array.prototype.forEach.call($('fxLayer').children, function (el) {
+            if (el._anchor && el._anchor.isConnected) placeAbove(el, el._anchor, el._gap);
+        });
+    }
+
+    var THINK_DOTS = '<i></i><i></i><i></i>';
+
+    function bubble(anchor, cls, ms) {
+        if (quiet() || !anchor) return null;
+        var el = document.createElement('div');
+        el.className = 'fx-say ' + cls;
+        placeAbove(el, anchor, 6);
+        $('fxLayer').appendChild(el);
+        if (ms) setTimeout(function () { el.remove(); }, ms);
+        return el;
+    }
+
+    function popSay(p, text, cls, dur) {
+        var el = bubble(boxAnchor(p), 'up' + (cls ? ' ' + cls : ''), dur || 1200);
+        if (el) el.textContent = text;
+    }
+
+    var DIFF_HINT = {
+        easy: '루즈-패시브 위주. 약한 패로 따라오고 잘 안 덮칩니다.',
+        normal: '섞여 있습니다. 고수 한둘에 나머지는 보통.',
+        hard: '타이트-어그레시브 위주. 당신의 베팅 패턴을 읽습니다.'
+    };
+
+    // ponytail: 스케일/난이도 둘 다 "버튼 그룹에서 하나 골라 저장"이다
+    function pickOpt(attr, val) {
+        Array.prototype.forEach.call(document.querySelectorAll('[data-' + attr + ']'), function (b) {
+            b.classList.toggle('is-on', b.dataset[attr] === String(val));
+        });
+        try { localStorage.setItem('holdem.' + attr, val); } catch (e) { /* 프라이빗 모드 */ }
+    }
+
+    function setScale(px) {
+        document.documentElement.style.setProperty('--scale', px + 'px');
+        pickOpt('scale', px);
+    }
+
+    var THEMES = { neon: 1, calm: 1, light: 1 };
+
+    function setTheme(t) {
+        // neon은 :root 기본값이라 따로 블록이 없다. 값만 심어두면 아무것도 안 걸린다
+        document.documentElement.dataset.theme = THEMES[t] ? t : 'neon';
+        pickOpt('theme', document.documentElement.dataset.theme);
+    }
+
+    function setDiff(d) {
+        cfg.diff = DIFF_MIX[d] ? d : 'normal';
+        pickOpt('diff', cfg.diff);
+        if (!$('scrStart').hidden) $('diffHint').textContent = DIFF_HINT[cfg.diff];
+    }
+
+    function loadOpts() {
+        function saved(k, dflt) {
+            try { return localStorage.getItem('holdem.' + k) || dflt; } catch (e) { return dflt; }
+        }
+        setScale(saved('scale', 15));
+        setDiff(saved('diff', 'normal'));
+        setTheme(saved('theme', 'neon'));
+        if (saved('math', '0') === '1') { $('mathBox').hidden = false; }
+    }
+
+    function showStart() {
+        $('startSub').textContent = '시작 스택 ' + fmt(cfg.chips) +
+            ' · 블라인드 100/200 · ' + cfg.blindEvery + '핸드마다 상승';
+        $('diffHint').textContent = DIFF_HINT[cfg.diff];
+        $('scrEnd').hidden = true;
+        $('scrStart').hidden = false;
+    }
+
+    function startGame() {
+        session++;
+        clearLag();
+        simErrors = 0;
+        simActs = 0;
+        simHumanActs = 0;
+        simStreets = 0;
+        P = [];
+        P.push({ seat: 0, name: '나', isHuman: true, chips: cfg.chips, persona: makePersona() });
+        var picks = pickRoster(cfg.ai, cfg.diff);
+        for (var i = 1; i <= cfg.ai; i++) {
+            var ch = picks[i - 1];
+            P.push({ seat: i, name: ch.name, isHuman: false, chips: cfg.chips, persona: ch.p });
+        }
+        P.forEach(function (p) {
+            p.out = false; p.folded = false; p.allIn = false;
+            p.bet = 0; p.totalBet = 0; p.hole = []; p.acted = false; p.revealed = false;
+            p.bustHand = 0;
+            p.stats = { vpip: 0, dealt: 0, raises: 0, allins: 0, wins: 0, maxPot: 0, folds: 0, bestScore: -1 };
+            p.obs = { acts: 0, raises: 0, allins: 0 };
+        });
+        fastForward = false;
+        $('btnSkip').hidden = true;
+        hideSdTimer();
+        sdNext = null;
+        hideHint();
+        st.hand = 0;
+        st.pot = 0;
+        st.over = false;
+        st.inHand = false;
+        st.dealer = Math.floor(Math.random() * P.length);
+
+        $('scrStart').hidden = true;
+        $('scrEnd').hidden = true;
+        $('scrGame').hidden = false;
+        logEl.innerHTML = '';
+        setLogMore(false);
+        buildSeats();
+
+        renderAll();
+        later(startHand, dly(400, 700));
+    }
+
+    var RESULT_COLS = ['순위', '이름', '결과', '참여율', '폴드', '레이즈', '올인', '팟', '최대 팟', '최고 족보'];
+
+    function rankedPlayers() {
+        return P.slice().sort(function (a, b) {
+            if (a.out !== b.out) return a.out ? 1 : -1;
+            if (!a.out) return b.chips - a.chips;
+            return b.bustHand - a.bustHand;
+        });
+    }
+
+    function resultRows(ranked) {
+        return ranked.map(function (p, i) {
+            var s = p.stats;
+            return {
+                me: p.isHuman,
+                first: i === 0,
+                cells: [
+                    (i === 0 ? ico('i-trophy') : '') + (i + 1) + '위', p.name,
+                    p.out ? '#' + p.bustHand + ' 버스트' : '우승',
+                    (s.dealt ? Math.round(s.vpip / s.dealt * 100) : 0) + '%',
+                    '' + s.folds, '' + s.raises, '' + s.allins, '' + s.wins,
+                    fmt(s.maxPot),
+                    s.bestScore >= 0 ? handName(s.bestScore) : '-'
+                ]
+            };
+        });
+    }
+
+    function resultSub() {
+        return '핸드 #' + st.hand + ' · 블라인드 ' + fmt(st.sb) + '/' + fmt(st.bb) +
+            ' · ' + DIFF_NAME[cfg.diff];
+    }
+
+    function showResults() {
+        st.over = true;
+        st.inHand = false;
+        fastForward = false;
+        $('btnSkip').hidden = true;
+
+        var ranked = rankedPlayers();
+        var win = !P[0].out;
+        var myRank = ranked.indexOf(P[0]) + 1;
+
+        $('endTitle').textContent = '최종 결과';
+
+        var rows = resultRows(ranked).map(function (r) {
+            var cls = (r.me ? 'is-me ' : '') + (r.first ? 'is-first' : '');
+            return '<tr' + (cls.trim() ? ' class="' + cls.trim() + '"' : '') + '>' +
+                r.cells.map(function (c) { return '<td>' + c + '</td>'; }).join('') + '</tr>';
+        }).join('');
+
+        $('endBody').innerHTML =
+            '<table class="result-tbl"><tr>' +
+            RESULT_COLS.map(function (h) { return '<th>' + h + '</th>'; }).join('') + '</tr>' +
+            rows + '</table>' +
+            '<div class="end-sub">' + resultSub() + '</div>';
+
+        $('scrEnd').hidden = false;
+        if (SIM) reportSim(win ? 'WIN' : 'LOSE (' + myRank + '위)');
+    }
+
+    function startHand() {
+        clearLag();
+        var alive = P.filter(notOut);
+        if (alive.length < 2) return;
+
+        st.hand++;
+        if (SIM && st.hand > 400) { st.over = true; reportSim('CAP'); return; }
+
+        st.level = Math.floor((st.hand - 1) / cfg.blindEvery);
+        // ponytail: 1-1.5-2-3-4-6 사이클, 6레벨마다 x10. 포커룸이 실제로 쓰는 구조.
+        // 레벨당 2배는 어디에도 없다 - 전체 칩이 10BB 되는 시점이 36핸드 -> 97핸드로 간다
+        st.sb = 100 * BLIND_STEP[st.level % 6] * Math.pow(10, Math.floor(st.level / 6));
+        st.bb = st.sb * 2;
+
+        P.forEach(function (p) {
+            p.folded = p.out;
+            p.allIn = p.acted = p.revealed = false;
+            p.bet = p.totalBet = 0;
+            p.hole = [];
+            p.handName = '';
+            p.dealAt = p.revealAt = p.best = null;
+        });
+
+        st.board = [];
+        boardShownAt = 0;
+        prevPotChips = 0;
+        st.pot = 0;
+        st.deck = shuffle(makeDeck());
+        st.street = 'preflop';
+        st.inHand = true;
+        hl = newHl();
+
+        var badgeFrom = null;
+        if (!quiet() && st.hand > 1) {
+            var oldSlot = badgeAnchor(st.dealer);
+            var oldBadge = oldSlot && oldSlot.querySelector('.badge');
+            if (oldBadge) badgeFrom = oldBadge.getBoundingClientRect();
+        }
+        st.dealer = nextSeat(st.dealer, notOut);
+
+        if (alive.length === 2) {
+            st.sbSeat = st.dealer;
+            st.bbSeat = nextSeat(st.dealer, notOut);
+        } else {
+            st.sbSeat = nextSeat(st.dealer, notOut);
+            st.bbSeat = nextSeat(st.sbSeat, notOut);
+        }
+
+        postBlind(P[st.sbSeat], st.sb);
+        postBlind(P[st.bbSeat], st.bb);
+        st.curBet = st.bb;
+        st.minRaise = st.bb;
+        st.capped = false;
+        st.lastAgg = -1;
+
+        P.forEach(function (p) {
+            p.vpipHand = false;
+            if (!p.out) {
+                p.hole = [st.deck.pop(), st.deck.pop()];
+                p.stats.dealt++;
+            }
+        });
+
+        log('── 핸드 #' + st.hand + ' · ' + fmt(st.sb) + '/' + fmt(st.bb) + ' ──', 'log-div');
+
+        st.actor = (st.bbSeat + 1) % P.length;
+
+        var order = [];
+        for (var oi = 1; oi <= P.length; oi++) {
+            var q = P[(st.dealer + oi) % P.length];
+            if (!q.out) order.push(q);
+        }
+        var iv = Math.round(130 / speedMult);
+        var badgeLead = quiet() || st.hand <= 1 ? 0 : Math.round(900 / speedMult);
+        var base = badgeLead + Math.round(900 / speedMult);
+        if (!quiet()) {
+            meReveal = false;
+            var now0 = Date.now();
+            order.forEach(function (q, k) {
+                q.dealAt = [now0 + base + k * iv + 380, now0 + base + (order.length + k) * iv + 380];
+            });
+        } else {
+            meReveal = true;
+        }
+
+        if (!quiet()) {
+            lagAdd('pot', P[st.sbSeat].bet, badgeLead + 100 + FLY_MS);
+            lagAdd('pot', P[st.bbSeat].bet, badgeLead + 300 + FLY_MS);
+        }
+        renderAll();
+
+        if (!quiet() && st.hand > 1) {
+            var toSlot = badgeFrom && badgeAnchor(st.dealer);
+            var toRect = null;
+            if (toSlot) {
+                var sr = toSlot.getBoundingClientRect();
+                toRect = { left: sr.left, top: sr.top + (sr.height - badgeFrom.height) / 2, width: badgeFrom.width, height: badgeFrom.height };
+            }
+            once.hideBadges = true;
+            renderAll();
+            if (toRect) fly('<span class="badge">D</span>', asRect(badgeFrom), asRect(toRect));
+            later(function () {
+                once.hideBadges = false;
+                once.popBadges = true;
+                renderAll();
+                once.popBadges = false;
+            }, badgeLead);
+        }
+
+        if (!quiet()) {
+            later(function () {
+                flyBlind(P[st.sbSeat]);
+            }, badgeLead + 100);
+            later(function () {
+                flyBlind(P[st.bbSeat]);
+            }, badgeLead + 300);
+        }
+
+        var shufHold = (base - badgeLead) + order.length * 2 * iv + 200;
+        later(function () { shuffleFx(shufHold); }, Math.max(badgeLead, 1));
+        for (var rd = 0; rd < 2; rd++) {
+            order.forEach(function (q, k) {
+                later(function () {
+                    fly('<span class="card back"></span>', $('deckView'), seatAnchor(q),
+                        { fade: true, rot: Math.random() * 24 - 12 });
+                }, base + (rd * order.length + k) * iv);
+            });
+        }
+
+        var revealMs = base + (2 * order.length - 1) * iv + 380 + Math.round(500 / speedMult);
+        if (!quiet()) {
+            later(function () {
+                meReveal = true;
+                var t = Date.now();
+                P[0].revealAt = [t, t + 450];
+                renderAll();
+            }, revealMs);
+        }
+
+        var total = revealMs + 450 + 320 + 300;
+        later(proceed, quiet() ? 1 : total + Math.random() * 250);
+    }
+
+    function postBlind(p, amt) {
+        var pay = Math.min(amt, p.chips);
+        p.chips -= pay;
+        p.bet = pay;
+        if (p.chips === 0) p.allIn = true;
+    }
+
+    function proceed() {
+        if (st.over || !st.inHand) return;
+
+        var live = P.filter(inHand);
+        if (live.length === 1) { awardUncontested(live[0]); return; }
+
+        var found = nextToAct();
+        if (!found) { endStreet(); return; }
+
+        st.actingSeat = found.seat;
+        renderAll();
+
+        if (found.isHuman && !SIM) {
+            showActions(found);
+        } else {
+            var t = aiThinkTime(found);
+            if (t > 500) popThink(found, t - 120);
+            later(function () { aiAct(found); }, t);
+        }
+    }
+
+    function popThink(p, ms) {
+        var el = bubble(seatEls[p.seat], 'think', ms);
+        if (el) el.innerHTML = THINK_DOTS;
+    }
+
+    function aiThinkTime(p) {
+        var callAmt = st.curBet - p.bet;
+        var stg = st.street === 'preflop' ? clamp(chen(p.hole) / 20, 0.05, 1) : postStrength(p);
+        var anchor = callAmt > 0 ? clamp(callAmt / (potTotal() + callAmt) * 1.15, 0.1, 0.85) : 0.55;
+        var close = 1 - clamp(Math.abs(stg - anchor) / 0.35, 0, 1);
+        var tell = clamp(p.persona.noise * 3, 0.1, 0.8);
+        var bias = close * tell * 0.5;
+        var r = Math.random();
+        if (r < 0.18 - bias * 0.12) return dly(400, 650);
+        if (r < 0.82 - bias * 0.35) return dly(750, 1500);
+        var hard = callAmt > 0 && callAmt >= p.chips * 0.25 ? 1500 : 0;
+        return dly(Math.round(1800 + hard + bias * 800), Math.round(3000 + hard + bias * 1200));
+    }
+
+    function afterAction(p) {
+        simActs++;
+        if (p.isHuman) simHumanActs++;
+        st.actingSeat = -1;
+        st.actor = (p.seat + 1) % P.length;
+        renderAll();
+        later(proceed, dly(250, 450));
+    }
+
+    function logAct(p, text) {
+        popSay(p, text, text === '폴드' ? 'fold' : '');
+        log(p.name + ': ' + text, p.isHuman ? 'log-me' : '');
+    }
+
+    function doFold(p) {
+        var host = seatAnchor(p);
+        var slots = host ? host.children : [];
+        fly('<span class="card back"></span>', slots[0] || host, $('boardView'), { fade: true, rot: Math.random() * 24 - 12 });
+        fly('<span class="card back"></span>', slots[1] || host, $('boardView'), { fade: true, rot: Math.random() * 24 - 12 });
+        p.folded = true;
+        p.acted = true;
+        p.obs.acts++;
+        p.stats.folds++;
+        logAct(p, '폴드');
+        afterAction(p);
+    }
+
+    function doCheck(p) {
+        p.acted = true;
+        p.obs.acts++;
+        logAct(p, '체크');
+        afterAction(p);
+    }
+
+    function doCall(p) {
+        var callAmt = st.curBet - p.bet;
+        var pay = Math.min(callAmt, p.chips);
+        p.chips -= pay;
+        p.bet += pay;
+        if (p.chips === 0) { p.allIn = true; p.stats.allins++; }
+        p.acted = true;
+        p.obs.acts++;
+        if (st.street === 'preflop' && pay > 0 && !p.vpipHand) {
+            p.vpipHand = true;
+            p.stats.vpip++;
+        }
+        flyPay(p, pay);
+        logAct(p, '콜 ' + fmt(pay));
+        afterAction(p);
+    }
+
+    function doRaise(p, to) {
+        var maxTo = p.bet + p.chips;
+        to = Math.min(to, maxTo);
+        var pay = to - p.bet;
+        p.chips -= pay;
+        p.bet = to;
+        if (p.chips === 0) { p.allIn = true; p.stats.allins++; }
+
+        if (to > st.curBet) {
+            var full = isFullRaise(to);
+            if (full) {
+                st.minRaise = to - st.curBet;
+                st.capped = false;
+                P.forEach(function (o) {
+                    if (o !== p && canAct(o)) o.acted = false;
+                });
+            } else {
+                st.capped = true;
+            }
+            st.curBet = to;
+            st.lastAgg = p.seat;
+        }
+        p.acted = true;
+        p.stats.raises++;
+        p.obs.acts++;
+        p.obs.raises++;
+        if (p.allIn) p.obs.allins++;
+        if (st.street === 'preflop' && !p.vpipHand) {
+            p.vpipHand = true;
+            p.stats.vpip++;
+        }
+        flyPay(p, pay);
+        logAct(p, '레이즈 ' + fmt(to));
+        afterAction(p);
+    }
+
+    // proceed 안에 묻혀 있어서 테스트가 불가능했던 로직. 꺼내서 단언한다
+    function nextToAct() {
+        for (var i = 0; i < P.length; i++) {
+            var q = P[(st.actor + i) % P.length];
+            if (!canAct(q)) continue;
+            if (!q.acted || q.bet < st.curBet) return q;
+        }
+        return null;
+    }
+
+    function activeOpponents(p) {
+        return P.filter(function (o) { return o !== p && inHand(o); }).length;
+    }
+
+    // 이 베팅에 "전원이 접을" 확률. 관찰된 폴드율을 곱해서 쌓는다.
+    // 표본이 없으면 0.45로 시작하고, 방금 친 사람은 잘 안 접는다.
+    function foldEquity(me) {
+        var q = 1;
+        P.forEach(function (o) {
+            if (o === me || !inHand(o)) return;
+            var rate = o.stats.dealt >= 3
+                ? clamp(o.stats.folds / o.stats.dealt, 0.12, 0.8)
+                : 0.45;
+            if (o.seat === st.lastAgg) rate *= 0.55;
+            q *= rate;
+        });
+        return q;
+    }
+
+    function obsDistrust(p) {
+        var rate = (p.obs.raises + p.obs.allins * 2) / Math.max(p.obs.acts, 8);
+        return clamp((rate - 0.3) * 0.6, 0, 0.3);
+    }
+
+    function isFullRaise(to) {
+        return to - st.curBet >= st.minRaise;
+    }
+
+    function canReopen(p) {
+        return !(st.capped && p.acted);
+    }
+
+    function sizeBet(p, potNow) {
+        var to;
+        if (st.street === 'preflop' && st.curBet === st.bb) {
+            to = st.bb * (2 + Math.floor(Math.random() * 2)) + sumBets() - st.bb;
+        } else {
+            to = st.curBet + Math.max(st.minRaise, round100(potNow * (0.45 + Math.random() * 0.45)));
+        }
+        return clamp(round100(to), st.curBet + st.minRaise, p.bet + p.chips);
+    }
+
+    function posBonus(p) {
+        var order = [];
+        for (var i = 1; i <= P.length; i++) {
+            var q = P[(st.dealer + i) % P.length];
+            if (inHand(q)) order.push(q.seat);
+        }
+        if (order.length < 3) return 0;
+        var idx = order.indexOf(p.seat);
+        if (idx < 0) return 0;
+        return (idx / (order.length - 1) - 0.5) * 0.16;
+    }
+
+    function aiAct(p) {
+        if (st.over || !st.inHand || !canAct(p)) { proceed(); return; }
+        var callAmt = st.curBet - p.bet;
+        var potNow = potTotal();
+        var pr = p.persona;
+        var stg = st.street === 'preflop' ? clamp(chen(p.hole) / 20, 0.05, 1) : postStrength(p);
+        var noise = (Math.random() * 2 - 1) * pr.noise;
+        var headsUp = P.filter(function (x) { return !x.out; }).length === 2;
+        // 블러프 빈도를 "상대가 접을 것 같은가"로 조절한다.
+        // 0.28은 흔한 폴드에퀴티. 그보다 높으면 더 치고, 낮으면 접는다.
+        var feMul = clamp(foldEquity(p) / 0.28, 0.2, 2.4);
+        var eff = stg + pr.loose + noise - 0.03 * (activeOpponents(p) - 1) + (headsUp ? 0.15 : 0);
+        eff += posBonus(p);
+        if (callAmt > 0 && st.lastAgg >= 0 && st.lastAgg !== p.seat) {
+            var skill = clamp(0.9 - pr.noise * 2.5, 0.1, 0.85);
+            eff += skill * obsDistrust(P[st.lastAgg]);
+        }
+
+        // 블러프는 쇼다운 가치가 없을 때 하는 것이다. 어중간한 패로 치면
+        // 나보다 나쁜 패만 접게 만들고 좋은 패에는 콜당한다 (폴라라이즈)
+        var noShowdown = eff < 0.42;
+
+        if (callAmt <= 0) {
+            var openThresh = 0.6 - pr.aggr * 0.15 - (headsUp ? 0.12 : 0);
+            var openBluff = noShowdown &&
+                Math.random() < pr.bluff * feMul * (st.street === 'preflop' ? 0.5 : 1);
+            if (eff > openThresh || openBluff) {
+                doRaise(p, sizeBet(p, potNow));
+            } else {
+                doCheck(p);
+            }
+            return;
+        }
+
+        var potOdds = callAmt / (potNow + callAmt);
+        var mayRaise = canReopen(p);
+        if (mayRaise && p.chips > callAmt &&
+            (eff > 0.9 || (eff > 0.72 - pr.aggr * 0.12 && Math.random() < pr.aggr))) {
+            doRaise(p, sizeBet(p, potNow));
+            return;
+        }
+        if (eff >= potOdds * (1.02 + pr.noise * 1.2) || (callAmt <= potNow * 0.08 && eff > 0.25)) {
+            doCall(p);
+            return;
+        }
+        // 접기 직전의 마지막 수단: 상대가 접을 것 같으면 리레이즈로 밀어낸다
+        if (mayRaise && noShowdown && p.chips > callAmt &&
+            Math.random() < pr.bluff * feMul * 0.4) {
+            doRaise(p, sizeBet(p, potNow));
+            return;
+        }
+        doFold(p);
+    }
+
+    function collectBets() {
+        P.forEach(function (p) {
+            st.pot += p.bet;
+            p.totalBet += p.bet;
+            p.bet = 0;
+        });
+    }
+
+    function endStreet() {
+        if (SIM) {
+            P.forEach(function (q) {
+                if (canAct(q) && q.bet !== st.curBet) simErrors++;
+            });
+        }
+        collectBets();
+        st.curBet = 0;
+        st.minRaise = st.bb;
+        st.capped = false;
+        st.lastAgg = -1;
+        P.forEach(function (p) { p.acted = false; });
+        renderAll();
+
+        if (st.street === 'river') { later(showdown, dly(350, 550)); return; }
+
+        var bettors = P.filter(canAct);
+        var next = { preflop: 'flop', flop: 'turn', turn: 'river' }[st.street];
+
+        if (bettors.length <= 1 && P.filter(inHand).length >= 2) {
+            markReveal(P.filter(inHand));
+            renderAll();
+            runOut(next);
+            return;
+        }
+
+        later(function () { dealStreet(next); startRound(next); }, dly(400, 650));
+    }
+
+    function burnFx() {
+        var a = $('boardView');
+        if (quiet() || !a) return;
+        var r = a.getBoundingClientRect();
+        fly('<span class="card back"></span>', a,
+            asRect({ left: r.left + 88, top: r.top + 26, width: r.width, height: r.height }),
+            { fade: true, rot: 18 });
+    }
+
+    function dealStreet(street) {
+        simStreets++;
+        st.street = street;
+        if (!quiet()) { burnFx(); once.boardFlip = 420; }
+        if (street === 'flop') st.board.push(st.deck.pop(), st.deck.pop(), st.deck.pop());
+        else st.board.push(st.deck.pop());
+        var names = { flop: '플랍', turn: '턴', river: '리버' };
+        var line = names[street] + ' ' + st.board.map(function (c) { return cardHtml(c, '', 0, 1); }).join('');
+        if (quiet()) {
+            boardShownAt = 0;
+            log(line, 'log-dealer');
+        } else {
+            var openMs = 420 + (street === 'flop' ? 2 : 0) * 450 + 300;
+            boardShownAt = Date.now() + openMs;
+            // 카드가 다 뒤집힌 그 시점에 로그와 분석을 같이 깨운다
+            later(function () { log(line, 'log-dealer'); renderMath(); }, openMs);
+        }
+        renderAll();
+    }
+
+    function startRound(street) {
+        st.actor = (st.dealer + 1) % P.length;
+        later(proceed, street === 'flop' ? dly(2700, 2950) : dly(1400, 1650));
+    }
+
+    function runOut(street) {
+        var wait = street === 'flop' ? dly(700, 950) :
+            street === 'turn' ? dly(2700, 2950) : dly(1400, 1650);
+        later(function () {
+            dealStreet(street);
+            if (st.street === 'river') { later(showdown, dly(1400, 1650)); return; }
+            runOut({ flop: 'turn', turn: 'river' }[st.street]);
+        }, wait);
+    }
+
+    function awardUncontested(p) {
+        collectBets();
+        p.chips += st.pot;
+        p.stats.wins++;
+        if (st.pot > p.stats.maxPot) p.stats.maxPot = st.pot;
+        fly(amtFx(st.pot), $('potView'), boxAnchor(p), { hold: 650, rot: Math.random() * 60 - 30 });
+        lagAdd(p.seat, st.pot, FLY_MS);
+        popSay(p, '팟 획득', 'win', 1800);
+        log(p.name + ' +' + fmt(st.pot), 'log-win');
+        st.pot = 0;
+        finishHand([p.seat]);
+    }
+
+    function sortByDealerLeft(list) {
+        var order = [];
+        for (var i = 1; i <= P.length; i++) order.push(P[(st.dealer + i) % P.length].seat);
+        return list.slice().sort(function (a, b) {
+            return order.indexOf(a.seat) - order.indexOf(b.seat);
+        });
+    }
+
+    function settlePots(pots) {
+        var winnersAll = [];
+        var won = {};
+        var chopped = {};
+        pots.forEach(function (pot, idx) {
+            if (!pot.elig.length) {
+                pot.all.forEach(function (p) {
+                    var r = pot.each;
+                    if (r > 0) {
+                        p.chips += r;
+                        fly(amtFx(r), $('potView'), boxAnchor(p), { delay: 700 + idx * 150, hold: 1100 });
+                        lagAdd(p.seat, r, 700 + idx * 150 + FLY_MS);
+                        log(p.name + ' +' + fmt(r) + ' 반환', 'log-sys');
+                    }
+                });
+                return;
+            }
+            var best = -1;
+            pot.elig.forEach(function (p) { if (p.score > best) best = p.score; });
+            var winners = pot.elig.filter(function (p) { return p.score === best; });
+            var amt = pot.amt;
+            var share = Math.floor(amt / winners.length);
+            var rem = amt - share * winners.length;
+            sortByDealerLeft(winners).forEach(function (p, i) {
+                var a = share + (i < rem ? 1 : 0);
+                p.chips += a;
+                lagAdd(p.seat, a, 700 + idx * 150 + FLY_MS);
+                won[p.seat] = (won[p.seat] || 0) + a;
+                if (winnersAll.indexOf(p.seat) < 0) winnersAll.push(p.seat);
+            });
+            if (winners.length > 1) winners.forEach(function (p) { chopped[p.seat] = 1; });
+            winners.forEach(function (p) {
+                fly(amtFx(share), $('potView'), boxAnchor(p), { delay: 700 + idx * 150, hold: 1100, rot: Math.random() * 60 - 30 });
+            });
+            log(winners.map(function (p) { return p.name; }).join(', ') + ' +' + fmt(amt) +
+                ' (' + handName(best) + (pots.length > 1 && idx > 0 ? ' · 사이드' : '') + (winners.length > 1 ? ' · 찹' : '') + ')', 'log-win');
+        });
+
+        winnersAll.forEach(function (seat) {
+            var p = P.filter(function (x) { return x.seat === seat; })[0];
+            if (!p) return;
+            p.stats.wins++;
+            if (won[seat] > p.stats.maxPot) p.stats.maxPot = won[seat];
+            later(function () { popSay(p, chopped[seat] ? '찹' : '팟 획득', 'win', 2400); }, 700);
+        });
+
+        return winnersAll;
+    }
+
+    // ponytail: buildPots를 재사용한다. 진행 중인 팟도 결국 같은 계산이다
+    function livePots() {
+        var ps = P.filter(function (q) { return q.totalBet + q.bet > 0; })
+            .map(function (q) { return { seat: q.seat, folded: q.folded, totalBet: q.totalBet + q.bet }; });
+        return ps.length ? buildPots(ps) : [];
+    }
+
+    // buildPots는 커밋 금액이 다를 때마다 레이어를 쪼갠다. 자격자가 같은 인접
+    // 레이어를 나눠 보여주는 건 노이즈다 - 갈라 보여야 의미가 있는 건 자격이 다를 때뿐
+    function mergedPots() {
+        var out = [];
+        livePots().forEach(function (po) {
+            var key = po.elig.map(function (x) { return x.seat; }).sort().join(',');
+            var last = out[out.length - 1];
+            if (last && last.key === key) { last.amt += po.amt; return; }
+            out.push({ key: key, amt: po.amt, elig: po.elig });
+        });
+        return out;
+    }
+
+    function potSplitHtml() {
+        // ponytail: 사이드팟은 올인이 걸렸을 때만 의미가 있다. SB/BB 차이로 생긴
+        // 레이어까지 보여주면 매 핸드 시작마다 가짜 사이드팟이 뜬다.
+        var allIn = P.filter(function (q) { return q.allIn && !q.folded; }).length > 0;
+        var pots = st.inHand && allIn ? mergedPots() : [];
+        if (pots.length < 2) return '';
+        return pots.map(function (po, i) {
+            var mine = po.elig.filter(function (x) { return x.seat === 0; }).length > 0;
+            return '<span' + (mine ? '' : ' class="is-out"') + '>' +
+                (i === 0 ? '메인' : '사이드' + i) + ' <b>' + fmt(po.amt) + '</b>' +
+                ' (' + po.elig.length + '명)</span>';
+        }).join('');
+    }
+
+    function markReveal(list) {
+        list.forEach(function (p) { p.revealed = true; });
+    }
+
+    function showdown() {
+        var live = P.filter(inHand);
+        markReveal(live);
+        live.forEach(function (p) {
+            p.best = bestFive(p.hole.concat(st.board));
+            p.score = p.best.score;
+            if (p.score > p.stats.bestScore) p.stats.bestScore = p.score;
+            p.handName = handName(p.score);
+            log(p.name + ': ' + p.hole.map(function (c) { return cardHtml(c, '', 0, 1); }).join('') +
+                ' — ' + handName(p.score), p.isHuman ? 'log-me' : '');
+        });
+        renderAll();
+
+        var pots = buildPots(P.filter(function (p) { return p.totalBet > 0; }));
+        var winnersAll = settlePots(pots);
+
+        if (winnersAll.length) {
+            hl.seatCores = {};
+            var coresBy = {};
+            live.forEach(function (p) {
+                coresBy[p.seat] = coreCards(p.best.cards, p.score);
+                var set = {};
+                markCards(set, coresBy[p.seat]);
+                hl.seatCores[p.seat] = set;
+            });
+            hl.bright = hl.seatCores[winnersAll[0]];
+
+            var w0 = P.filter(function (x) { return x.seat === winnersAll[0]; })[0];
+            var losers = live.filter(function (p) { return winnersAll.indexOf(p.seat) < 0; });
+            if (losers.length) {
+                var bl = losers.slice().sort(function (a, b) { return b.score - a.score; })[0];
+                if (Math.floor(w0.score / P15_5) === Math.floor(bl.score / P15_5)) {
+                    var rw = coresBy[w0.seat].map(function (c) { return c.r; }).sort().join(',');
+                    var rl = coresBy[bl.seat].map(function (c) { return c.r; }).sort().join(',');
+                    if (rw === rl) {
+                        w0.handName += ' · 키커';
+                        var wk = holeKicker(w0, w0.best);
+                        if (wk) {
+                            hl.sdKick = {};
+                            hl.sdKick[cardKey(wk)] = 1;
+                            hl.sdKickSeat = w0.seat;
+                            hl.sdKickShow = hl.sdKick;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (live.length >= 2) {
+            var pre = live.map(function (p) {
+                return { p: p, s: evalBest(p.hole.concat(st.board.slice(0, 4))) };
+            }).sort(function (a, b) { return b.s - a.s; });
+            if (pre[0].s > pre[1].s && Math.floor(pre[0].s / P15_5) >= 1 &&
+                winnersAll.indexOf(pre[0].p.seat) < 0) {
+                pre[0].p.handName += ' · 배드 비트';
+                log(pre[0].p.name + ' 배드 비트', 'log-sys');
+            }
+        }
+
+        st.pot = 0;
+        finishHand(winnersAll, true);
+    }
+
+    function markBusts() {
+        P.forEach(function (p) {
+            if (!p.out && p.chips === 0) {
+                p.out = true;
+                p.bustHand = st.hand;
+                log(p.name + ' 버스트', 'log-dealer');
+            }
+        });
+        if (P[0].out && !fastForward) $('btnSkip').hidden = false;
+    }
+
+    function finishHand(winnerSeats, showdownSlow) {
+        st.inHand = false;
+        st.winners = winnerSeats || [];
+        st.wasShowdown = !!showdownSlow;
+        renderAll();
+
+        if (SIM) {
+            var tot = P.reduce(function (a, p) { return a + p.chips; }, 0);
+            if (tot !== cfg.chips * P.length) simErrors++;
+        }
+
+        var slow = showdownSlow && !quiet();
+        if (!slow) markBusts();
+        var alive = P.filter(function (p) { return !p.out && p.chips > 0; });
+
+        if (alive.length === 1) {
+            if (slow) later(function () { showSdTimer(function () { markBusts(); showResults(); }); }, 1500);
+            else {
+                var s0 = session;
+                setTimeout(function () { if (s0 === session) showResults(); }, dly(1100, 1400));
+            }
+            return;
+        }
+
+        if (slow) {
+            later(function () { showSdTimer(function () { markBusts(); startHand(); }); }, 1500);
+            return;
+        }
+        later(startHand, dly(2400, 2400));
+    }
+
+    var sdRafId = null;
+    var sdNext = null;
+
+    function showSdTimer(next) {
+        sdNext = next || startHand;
+        if (quiet()) { later(sdNext, 1); return; }
+        var prog = $('sdProg');
+        var num = $('sdNum');
+        var endAt = Date.now() + 9000;
+        var s = session;
+        $('sdTimer').classList.add('is-visible');
+        cancelAnimationFrame(sdRafId);
+        function draw() {
+            if (s !== session || st.over) return;
+            var remain = endAt - Date.now();
+            if (remain <= 0) { advanceFromShowdown(); return; }
+            prog.style.strokeDashoffset = 100.5 * (1 - remain / 9000);
+            num.textContent = Math.ceil(remain / 1000);
+            sdRafId = requestAnimationFrame(draw);
+        }
+        draw();
+    }
+
+    function hideSdTimer() {
+        cancelAnimationFrame(sdRafId);
+        $('sdTimer').classList.remove('is-visible');
+    }
+
+    function advanceFromShowdown() {
+        var fn = sdNext || startHand;
+        sdNext = null;
+        hideSdTimer();
+        later(fn, 250);
+    }
+
+    var raiseTo = 0;
+    var raiseMin = 0;
+    var raiseMax = 0;
+
+    var meThinkTimer = null;
+    var meThinkEl = null;
+
+    function showMeThink() {
+        if (meThinkEl || hintEl || $('actions').hidden) return;
+        meThinkEl = bubble($('mePanel'), 'think', 0);
+        if (meThinkEl) meThinkEl.innerHTML = THINK_DOTS;
+    }
+
+    function clearMeThink() {
+        if (meThinkTimer) { clearTimeout(meThinkTimer); meThinkTimer = null; }
+        if (meThinkEl) { meThinkEl.remove(); meThinkEl = null; }
+    }
+
+    function showActions(p) {
+        var callAmt = st.curBet - p.bet;
+        $('actions').hidden = false;
+        clearMeThink();
+        if (!quiet()) meThinkTimer = setTimeout(showMeThink, 150);
+        $('btnFold').classList.toggle('is-off', callAmt <= 0);
+        $('btnCall').textContent = callAmt <= 0 ? '체크' :
+            '콜 ' + fmt(Math.min(callAmt, p.chips)) + (callAmt >= p.chips ? ' 올인' : '');
+
+        var canRaise = p.chips > Math.max(callAmt, 0) && canReopen(p);
+        $('raiseBox').hidden = !canRaise;
+        if (canRaise) {
+            raiseMin = Math.min(st.curBet + st.minRaise, p.bet + p.chips);
+            raiseMax = p.bet + p.chips;
+            raiseTo = raiseMin;
+            updateRaiseAmt();
+        }
+    }
+
+    function hideActions() {
+        $('actions').hidden = true;
+        clearMeThink();
+    }
+
+    function updateRaiseAmt() {
+        $('raiseAmt').textContent = raiseTo >= raiseMax ? '올인 ' + fmt(raiseMax) : fmt(raiseTo);
+        $('btnRaise').textContent = st.curBet > 0 ? '레이즈' : '벳';
+    }
+
+    function stepRaise(dir) {
+        raiseTo = clamp(round100(raiseTo + dir * st.bb), raiseMin, raiseMax);
+        updateRaiseAmt();
+    }
+
+    function humanAction(kind) {
+        var p = P[0];
+        if (st.over || !st.inHand || st.actingSeat !== 0 || $('actions').hidden) return;
+        var callAmt = st.curBet - p.bet;
+        hideActions();
+        if (kind === 'fold') {
+            if (callAmt <= 0) return;
+            doFold(p);
+            return;
+        }
+        if (kind === 'call') { callAmt <= 0 ? doCheck(p) : doCall(p); return; }
+        if (kind === 'raise') {
+            if (p.chips <= Math.max(callAmt, 0)) { callAmt <= 0 ? doCheck(p) : doCall(p); return; }
+            doRaise(p, raiseTo);
+        }
+    }
+
+    var seatEls = [];
+    var prevBoardLen = 0;
+    var once = { boardFlip: 0, hideBadges: false, popBadges: false };
+    var meReveal = true;
+    var boardShownAt = 0;
+    var prevPotChips = 0;
+    var prevPot = -1;
+
+    function buildSeats() {
+        var wrap = $('seatGrid');
+        wrap.innerHTML = '';
+        seatEls = [];
+        P.forEach(function (p) {
+            if (p.isHuman) { seatEls.push(null); return; }
+            var d = document.createElement('div');
+            d.className = 'seat';
+            d.addEventListener('mouseenter', function () { hoverCore(p.seat); });
+            d.addEventListener('mouseleave', unhoverCore);
+            wrap.appendChild(d);
+            seatEls.push(d);
+        });
+    }
+
+    function badgeHtml(seat) {
+        if (once.hideBadges || st.hand === 0) return '';
+        function b(txt, d) {
+            return '<span class="badge' + (once.popBadges ? ' anim-pop' : '') + '"' +
+                (once.popBadges && d ? ' style="animation-delay:' + d + 'ms"' : '') + '>' + txt + '</span>';
+        }
+        var out = '';
+        if (seat === st.dealer) out += b('D', 0);
+        if (seat === st.sbSeat) out += b('SB', 130);
+        if (seat === st.bbSeat) out += b('BB', 260);
+        return out;
+    }
+
+    function handLabel(p) {
+        if (!p.handName || p.folded || p.out || st.inHand) return '';
+        var win = st.winners && st.winners.indexOf(p.seat) >= 0;
+        return '<span class="hand-label' + (win ? ' is-win' : '') + '">' + p.handName + '</span>';
+    }
+
+    // AI는 p.obs로 나를 읽고 있었다(obsDistrust). 같은 데이터를 플레이어에게도 준다
+    function tendency(p) {
+        if (p.out || p.stats.dealt < 5) return '';
+        var vpip = Math.round(p.stats.vpip / p.stats.dealt * 100);
+        var agg = Math.round((p.obs.raises + p.obs.allins) / Math.max(p.obs.acts, 1) * 100);
+        return '참여 ' + vpip + '% · 공격 ' + agg + '%';
+    }
+
+    function seatTag(p) {
+        if (p.out) return '<span class="tag">버스트</span>';
+        if (p.folded) return '<span class="tag">폴드</span>';
+        if (p.allIn) return '<span class="tag is-allin">올인</span>';
+        return '';
+    }
+
+    function renderSeat(p) {
+        var el = seatEls[p.seat];
+        if (!el) return;
+        el.className = 'seat' +
+            (p.out ? ' is-out' : p.folded ? ' is-folded' : '') +
+            (st.actingSeat === p.seat ? ' is-acting' : '') +
+            (!st.inHand && st.wasShowdown && st.winners && st.winners.indexOf(p.seat) >= 0 ? ' is-won' : '');
+        var now = Date.now();
+        var d0 = p.dealAt ? Math.max(0, p.dealAt[0] - now) : 0;
+        var d1 = p.dealAt ? Math.max(0, p.dealAt[1] - now) : 0;
+        var s1 = '<span class="card slot"></span>';
+        var cards = p.out ? '' :
+            p.revealed && p.hole.length ? p.hole.map(function (c, ci) { return flipHtml(c, p.revealAt ? p.revealAt[ci] - now : -9999); }).join('') :
+            p.hole.length && !p.folded ?
+                (d1 > 0 ?
+                    '<span class="card-stack">' + s1 + backHtml(d0) + '</span>' +
+                    '<span class="card-stack">' + s1 + backHtml(d1) + '</span>' :
+                    backHtml() + backHtml()) :
+            s1 + s1;
+        el.innerHTML =
+            '<div class="seat-head"><span class="seat-name">' + p.name + '</span>' +
+            '<span class="badge-slot">' + badgeHtml(p.seat) + '</span>' + seatTag(p) + '</div>' +
+            '<div class="seat-chips">' + chipIco(shownChips(p), 6) + fmt(shownChips(p)) + '</div>' +
+            '<div class="seat-tend">' + tendency(p) + '</div>' +
+            '<div class="seat-bet">' + (p.bet > 0 ? chipIco(p.bet) + fmt(p.bet) : handLabel(p)) + '</div>' +
+            '<div class="seat-cards">' + cards + '</div>';
+    }
+
+    function renderAll() {
+        if ($('scrGame').hidden) return;
+        if (hintEl) {
+            if (!canHint()) {
+                hideHint();
+            } else {
+                updateHint();
+            }
+        }
+        P.forEach(function (p) { if (!p.isHuman) renderSeat(p); });
+
+        var b = '';
+        for (var i = 0; i < 5; i++) {
+            if (i >= st.board.length) {
+                b += '<span class="card slot"></span>';
+            } else if (i < prevBoardLen) {
+                b += cardHtml(st.board[i]);
+            } else {
+                var bk = i - prevBoardLen;
+                var flipAt = once.boardFlip + bk * 450;
+                b += '<span class="card-stack">' +
+                    cardHtml(st.board[i], ' anim-flip', flipAt) +
+                    '<span class="card back" style="animation: deal-in 0.25s ease ' + (bk * 130) + 'ms backwards, back-out 0.15s ease ' + flipAt + 'ms forwards"></span>' +
+                    '</span>';
+            }
+        }
+        prevBoardLen = st.board.length;
+        once.boardFlip = 0;
+        $('boardView').innerHTML = b;
+
+        var pt = Math.max(0, potTotal() - lag.pot);
+        var pv = $('potView');
+        pv.textContent = fmt(pt);
+        // 새로 늘어난 칩만 날아 들어오게 한다
+        var grew = pt > prevPot && prevPot >= 0;
+        $('potChip').innerHTML = chipIco(pt, 12, grew ? prevPotChips : -1);
+        prevPotChips = chipsFor(pt, 12).length;
+
+        if (pt !== prevPot && prevPot >= 0 && pt > 0) {
+            pv.classList.remove('anim-pulse');
+            void pv.offsetWidth;
+            pv.classList.add('anim-pulse');
+        }
+        prevPot = pt;
+        $('potSplit').innerHTML = potSplitHtml();
+
+        var into = st.hand > 0 ? (st.hand - 1) % cfg.blindEvery : -1;
+        var prog = '<span class="blind-prog" title="블라인드 상승 진행">';
+        for (var pi = 0; pi < cfg.blindEvery; pi++) {
+            prog += '<i' + (pi <= into ? ' class="is-on"' : '') + '></i>';
+        }
+        prog += '</span>';
+        var hu = st.hand > 0 && P.filter(notOut).length === 2 ?
+            '<span class="headsup-tag">헤즈업</span>' : '';
+        $('gameInfo').innerHTML = '<b>핸드 #' + st.hand + ' · ' + fmt(st.sb) + '/' + fmt(st.bb) + '</b>' + prog +
+            '<span class="next-level">' + ico('i-up') + '다음 ' + fmt(st.sb * 2) + '/' + fmt(st.bb * 2) + '</span>' + hu;
+
+        var me = P[0];
+        $('mePanel').className = 'me-panel' + (st.actingSeat === 0 ? ' is-acting' : '') +
+            (!st.inHand && st.wasShowdown && st.winners && st.winners.indexOf(0) >= 0 ? ' is-won' : '');
+        $('meHead').innerHTML =
+            '<span class="seat-name">나</span>' +
+            '<span class="badge-slot">' + badgeHtml(0) + '</span>' +
+            '<span class="dim num-slot me-chips">' + chipIco(shownChips(me), 6) + fmt(shownChips(me)) + '</span>' +
+            '<span class="me-bet num-slot">' +
+            (me.bet > 0 ? chipIco(me.bet) + fmt(me.bet) : handLabel(me)) + '</span>' +
+            seatTag(me);
+        var nowMe = Date.now();
+        var m0 = me.dealAt ? Math.max(0, me.dealAt[0] - nowMe) : 0;
+        var m1 = me.dealAt ? Math.max(0, me.dealAt[1] - nowMe) : 0;
+        var slot2 = '<span class="card slot"></span><span class="card slot"></span>';
+        $('meCards').innerHTML = !me.hole.length || me.out || me.folded ? slot2 :
+            !meReveal ?
+                '<span class="card-stack"><span class="card slot"></span>' + backHtml(m0) + '</span>' +
+                '<span class="card-stack"><span class="card slot"></span>' + backHtml(m1) + '</span>' :
+            me.hole.map(function (c, ci) { return flipHtml(c, me.revealAt ? me.revealAt[ci] - nowMe : -9999); }).join('');
+
+        if (st.actingSeat !== 0 || SIM) hideActions();
+        renderMath();
+        repositionFx();
+    }
+
+    function initGameUi() {
+        logEl = $('logView');
+
+        logEl.addEventListener('scroll', function () {
+            logEl.parentNode.classList.toggle('is-scrolled', logEl.scrollTop > 0);
+            if (logEl.scrollHeight - logEl.scrollTop - logEl.clientHeight < 30) {
+                setLogMore(false);
+            }
+        });
+
+        $('paneTabs').addEventListener('click', function (e) {
+            if (e.target.dataset.pane) showPane(e.target.dataset.pane);
+        });
+
+        // 용어를 누르면 바로 아래 설명이 펼쳐진다
+        $('termsView').addEventListener('click', function (e) {
+            if (!e.target.classList.contains('term')) return;
+            var def = e.target.nextElementSibling;
+            def.hidden = !def.hidden;
+            e.target.classList.toggle('is-open', !def.hidden);
+        });
+
+        $('logMore').addEventListener('click', function () {
+            setLogMore(false);
+            logEl.scrollTo({ top: logEl.scrollHeight, behavior: 'smooth' });
+        });
+
+        $('btnMath').addEventListener('click', toggleMath);
+        $('btnFold').addEventListener('click', function () { humanAction('fold'); });
+        $('btnCall').addEventListener('click', function () { humanAction('call'); });
+        $('btnRaise').addEventListener('click', function () { humanAction('raise'); });
+        $('btnMinus').addEventListener('click', function () { stepRaise(-1); });
+        $('btnPlus').addEventListener('click', function () { stepRaise(1); });
+
+        // 버튼마다 리스너 달 필요 없다. 부모 하나로 위임
+        $('scrStart').addEventListener('click', function (e) {
+            if (e.target.dataset.scale) setScale(Number(e.target.dataset.scale));
+            if (e.target.dataset.diff) setDiff(e.target.dataset.diff);
+            if (e.target.dataset.theme) setTheme(e.target.dataset.theme);
+        });
+
+        $('seatPick').addEventListener('click', function (e) {
+            var pick = e.target.dataset.n;
+            if (!pick) return;
+            cfg.ai = Number(pick) - 1;
+            startGame();
+        });
+
+        Array.prototype.forEach.call(document.querySelectorAll('.preset'), function (b) {
+            b.addEventListener('click', function () {
+                var pot = potTotal();
+                var callAmt = Math.max(0, st.curBet - P[0].bet);
+                // nBB = "그 금액까지 레이즈". raiseMin 미만이면 아래 clamp가 최소액으로 올려준다
+                var v = b.dataset.bb ? st.bb * Number(b.dataset.bb) :
+                    b.dataset.preset === 'pot' ? st.curBet + pot + callAmt : raiseMax;
+                raiseTo = clamp(round100(v), raiseMin, raiseMax);
+                updateRaiseAmt();
+            });
+        });
+
+        document.addEventListener('keydown', function (e) {
+            var k = e.key;
+            var isSpace = k === ' ' || k === 'Spacebar';
+
+
+
+            if (k === 'Tab' && !$('scrGame').hidden) {
+                e.preventDefault();
+                if (!hintEl) showHint();
+                return;
+            }
+            if (!$('scrEnd').hidden) {
+                if (isSpace) { e.preventDefault(); showStart(); }
+                return;
+            }
+            if ($('scrGame').hidden) return;
+
+            if (isSpace && $('sdTimer').classList.contains('is-visible')) {
+                e.preventDefault();
+                advanceFromShowdown();
+                return;
+            }
+            if ($('actions').hidden) return;
+
+            if (k === 'c' || k === 'C' || k === 'Enter') { e.preventDefault(); humanAction('call'); return; }
+            if (k === 'f' || k === 'F') { humanAction('fold'); return; }
+            if (k === 'h' || k === 'H') { toggleMath(); return; }
+
+            if ($('raiseBox').hidden) return;
+            if (k === 'r' || k === 'R') { humanAction('raise'); return; }
+            if (k === 'w' || k === 'W') { e.preventDefault(); stepRaise(1); return; }
+            if (k === 's' || k === 'S') { e.preventDefault(); stepRaise(-1); return; }
+            if (k >= '1' && k <= '7') {
+                var pb = document.querySelectorAll('.preset')[Number(k) - 1];
+                if (pb) pb.click();
+            }
+        });
+
+        document.addEventListener('keyup', function (e) {
+            if (e.key === 'Tab' && hintEl) hideHint();
+        });
+
+        window.addEventListener('blur', function () {
+            if (hintEl) hideHint();
+        });
+
+        window.addEventListener('resize', repositionFx);
+        $('tableMid').addEventListener('scroll', repositionFx);
+
+        $('btnRestart').addEventListener('click', showStart);
+
+
+
+        $('mePanel').addEventListener('mouseenter', function () { hoverCore(0); });
+        $('mePanel').addEventListener('mouseleave', unhoverCore);
+
+        // ponytail: 터치엔 hover도 Tab 키도 없다. 내 패널을 누르고 있는 동안만 힌트
+        $('mePanel').addEventListener('pointerdown', function (e) {
+            if (e.pointerType !== 'mouse' && !hintEl) showHint();
+        });
+        ['pointerup', 'pointercancel'].forEach(function (ev) {
+            window.addEventListener(ev, function (e) {
+                if (e.pointerType !== 'mouse' && hintEl) hideHint();
+            });
+        });
+
+        $('btnSkip').addEventListener('click', function () {
+            fastForward = true;
+            clearLag();
+            $('btnSkip').hidden = true;
+            clearMeThink();
+            if ($('sdTimer').classList.contains('is-visible')) advanceFromShowdown();
+            flushLater();
+        });
+
+        $('sdTimer').addEventListener('click', function () {
+            if ($('sdTimer').classList.contains('is-visible')) advanceFromShowdown();
+        });
+    }
+
+    function testCard(r, s) { return { r: r, s: s }; }
+
+    function runTests() {
+        var out = [];
+        function T(name, cond) { out.push((cond ? 'PASS' : 'FAIL') + '  ' + name); }
+        var c = testCard;
+
+        var royal = eval5([c(14, 0), c(13, 0), c(12, 0), c(11, 0), c(10, 0)]);
+        var sf9 = eval5([c(9, 1), c(8, 1), c(7, 1), c(6, 1), c(5, 1)]);
+        var quads = eval5([c(14, 0), c(14, 1), c(14, 2), c(14, 3), c(9, 0)]);
+        var fh = eval5([c(14, 0), c(14, 1), c(14, 2), c(13, 0), c(13, 1)]);
+        var flushK = eval5([c(13, 2), c(11, 2), c(9, 2), c(7, 2), c(2, 2)]);
+        var flushK2 = eval5([c(13, 3), c(11, 3), c(9, 3), c(6, 3), c(2, 3)]);
+        var wheel = eval5([c(14, 0), c(2, 1), c(3, 2), c(4, 3), c(5, 0)]);
+        var str6 = eval5([c(6, 0), c(5, 1), c(4, 2), c(3, 3), c(2, 0)]);
+        var trips = eval5([c(8, 0), c(8, 1), c(8, 2), c(14, 0), c(2, 1)]);
+        var twoPair = eval5([c(13, 0), c(13, 1), c(7, 2), c(7, 3), c(4, 0)]);
+        var twoPair2 = eval5([c(13, 2), c(13, 3), c(7, 0), c(7, 1), c(3, 0)]);
+        var pairA = eval5([c(14, 0), c(14, 1), c(9, 2), c(7, 3), c(4, 0)]);
+        var high = eval5([c(14, 0), c(12, 1), c(9, 2), c(7, 3), c(4, 0)]);
+
+        T('로열 > 9하이 스플', royal > sf9);
+        T('스플 > 포카드', sf9 > quads);
+        T('포카드 > 풀하우스', quads > fh);
+        T('풀하우스 > 플러시', fh > flushK);
+        T('플러시 킥커 비교', flushK > flushK2);
+        T('플러시 > 스트레이트', flushK2 > str6);
+        T('6하이 스트레이트 > 휠', str6 > wheel);
+        T('휠 > 트리플', wheel > trips);
+        T('트리플 > 투페어', trips > twoPair);
+        T('투페어 킥커 비교', twoPair > twoPair2);
+        T('투페어 > 원페어', twoPair2 > pairA);
+        T('원페어 > 하이카드', pairA > high);
+        T('휠 이름 = 스트레이트', handName(wheel) === '스트레이트');
+        T('로열 이름', handName(royal) === '로열 스트레이트 플러시');
+
+        var boardRoyal = [c(14, 0), c(13, 0), c(12, 0), c(11, 0), c(10, 0)];
+        var a7 = evalBest([c(2, 1), c(3, 2)].concat(boardRoyal));
+        var b7 = evalBest([c(9, 3), c(4, 1)].concat(boardRoyal));
+        T('보드 플레이 동점', a7 === b7 && a7 === royal);
+        var c7 = evalBest([c(9, 1), c(9, 2), c(9, 3), c(9, 0), c(2, 0), c(3, 1), c(4, 2)]);
+        T('7장 포카드 인식', Math.floor(c7 / P15_5) === 7);
+
+        var ps = [
+            { name: 'A', totalBet: 1000, folded: false },
+            { name: 'B', totalBet: 400, folded: false },
+            { name: 'C', totalBet: 1000, folded: true },
+            { name: 'D', totalBet: 200, folded: false }
+        ];
+        var pots = buildPots(ps);
+        var total = pots.reduce(function (a, p) { return a + p.amt; }, 0);
+        T('사이드팟 총액 보존', total === 2600);
+        T('사이드팟 3개', pots.length === 3);
+        T('메인팟 800·자격 3명', pots[0].amt === 800 && pots[0].elig.length === 3);
+        T('사이드1 600·자격 2명', pots[1].amt === 600 && pots[1].elig.length === 2);
+        T('사이드2 1200·자격 1명(A)', pots[2].amt === 1200 && pots[2].elig.length === 1 && pots[2].elig[0].name === 'A');
+
+        var ps2 = [
+            { name: 'SB', totalBet: 1000, folded: true },
+            { name: 'BB', totalBet: 700, folded: false },
+            { name: 'X', totalBet: 300, folded: false }
+        ];
+        var pots2 = buildPots(ps2);
+        var top = pots2[pots2.length - 1];
+        T('자격자 없는 층 감지', pots2.length === 3 && top.elig.length === 0);
+        T('반환 층 금액/대상', top.each === 300 && top.all.length === 1 && top.all[0].name === 'SB');
+
+
+        var keepSt = { street: st.street, curBet: st.curBet, minRaise: st.minRaise, bb: st.bb,
+            capped: st.capped, dealer: st.dealer, actor: st.actor, pot: st.pot,
+            board: st.board, lastAgg: st.lastAgg };
+        var keepP = P;
+
+        st.street = 'flop';
+        st.curBet = 540;
+        st.minRaise = 500;
+        st.bb = 200;
+        P = [{ seat: 0, bet: 0 }, { seat: 1, bet: 0 }];
+        T('최소 레이즈 미만으로 안 깎임', sizeBet({ bet: 0, chips: 99999 }, 100) === 1040);
+
+        var boundOk = true;
+        for (var bt = 0; bt < 200; bt++) {
+            var bp = { bet: 0, chips: 99999 };
+            var v = sizeBet(bp, 100 + Math.floor(Math.random() * 5000));
+            if (v < st.curBet + st.minRaise || v > bp.bet + bp.chips) boundOk = false;
+        }
+        T('sizeBet 범위 유지(200회)', boundOk);
+
+        T('짧은 스택은 올인으로 캡', Math.min(sizeBet({ bet: 0, chips: 800 }, 100), 800) === 800);
+
+        T('정확히 최소 레이즈면 정식', isFullRaise(1040) === true);
+        T('최소 레이즈 미만이면 숏', isFullRaise(1000) === false);
+
+        st.capped = true;
+        T('숏올인 뒤 액션한 사람은 재레이즈 불가', canReopen({ acted: true }) === false);
+        T('숏올인 뒤 미액션자는 가능', canReopen({ acted: false }) === true);
+        st.capped = false;
+        T('일반 상황은 항상 가능', canReopen({ acted: true }) === true);
+
+        P = [{ seat: 0 }, { seat: 1 }, { seat: 2 }, { seat: 3 }];
+        st.dealer = 2;
+        var sorted = sortByDealerLeft([{ seat: 0 }, { seat: 3 }]);
+        T('나머지 칩은 딜러 왼쪽부터', sorted[0].seat === 3 && sorted[1].seat === 0);
+
+        // ===== 베팅 라운드 순서 =====
+        // 칩 총합만 보던 시뮬로는 "누가 언제 액션했는가"를 못 잡는다
+        function pl(o) {
+            return { seat: o.seat, out: !!o.out, folded: !!o.folded, allIn: !!o.allIn,
+                acted: !!o.acted, bet: o.bet || 0, totalBet: o.totalBet || 0 };
+        }
+        function seat(players, actor, curBet) {
+            P = players.map(pl);
+            st.actor = actor;
+            st.curBet = curBet;
+            var nx = nextToAct();
+            return nx ? nx.seat : null;
+        }
+
+        T('BB는 전원 콜이어도 옵션을 받는다', seat([
+            { seat: 0, acted: true, bet: 200 },
+            { seat: 1, acted: true, bet: 200 },
+            { seat: 2, acted: false, bet: 200 }
+        ], 0, 200) === 2);
+
+        T('전원 액션+금액 일치면 라운드 종료', seat([
+            { seat: 0, acted: true, bet: 200 },
+            { seat: 1, acted: true, bet: 200 },
+            { seat: 2, acted: true, bet: 200 }
+        ], 0, 200) === null);
+
+        T('레이즈가 들어오면 이미 액션한 사람도 다시 대상', seat([
+            { seat: 0, acted: true, bet: 200 },
+            { seat: 1, acted: true, bet: 600 },
+            { seat: 2, acted: true, bet: 200 }
+        ], 0, 600) === 0);
+
+        T('올인한 사람은 건너뛴다', seat([
+            { seat: 0, acted: true, allIn: true, bet: 100 },
+            { seat: 1, acted: false, bet: 0 }
+        ], 0, 200) === 1);
+
+        T('폴드한 사람은 건너뛴다', seat([
+            { seat: 0, folded: true, bet: 0 },
+            { seat: 1, acted: false, bet: 0 }
+        ], 0, 200) === 1);
+
+        T('버스트한 사람은 건너뛴다', seat([
+            { seat: 0, out: true, bet: 0 },
+            { seat: 1, acted: false, bet: 0 }
+        ], 0, 200) === 1);
+
+        T('순번은 마지막 좌석에서 0번으로 돈다', seat([
+            { seat: 0, acted: false, bet: 0 },
+            { seat: 1, acted: true, bet: 200 },
+            { seat: 2, acted: true, bet: 200 }
+        ], 2, 200) === 0);
+
+        T('아무도 액션할 수 없으면 종료(전원 올인)', seat([
+            { seat: 0, allIn: true, bet: 500 },
+            { seat: 1, allIn: true, bet: 300 }
+        ], 0, 500) === null);
+
+        P = [pl({ seat: 0, bet: 300, totalBet: 100 }), pl({ seat: 1, bet: 300, totalBet: 100 })];
+        st.pot = 100;
+        collectBets();
+        T('스트리트 종료: 팟 합산 + bet 초기화 + totalBet 누적',
+            st.pot === 700 && P[0].bet === 0 && P[0].totalBet === 400);
+
+        // 진행 중 사이드팟 표시가 쓰는 경로
+        P = [pl({ seat: 0, bet: 300, totalBet: 700 }), pl({ seat: 1, bet: 300, totalBet: 0 }),
+             pl({ seat: 2, folded: true, bet: 0, totalBet: 200 })];
+        var raw = livePots();
+        T('레이어 총액 보존', raw.reduce(function (a, x) { return a + x.amt; }, 0) === 1500);
+        var lp = mergedPots();
+        T('자격 같은 레이어는 합쳐서 표시',
+            lp.length === 2 &&
+            lp[0].amt === 800 && lp[0].elig.length === 2 &&
+            lp[1].amt === 700 && lp[1].elig.length === 1 && lp[1].elig[0].seat === 0);
+
+        // ===== 난이도별 착석 =====
+        // 로스터가 하드4/노멀6/이지6뿐이라 티어가 동나는 경우가 실제로 생긴다
+        var sizeOk = true, dupOk = true;
+        ['easy', 'normal', 'hard'].forEach(function (d) {
+            for (var c = 1; c <= 8; c++) {
+                var r = pickRoster(c, d);
+                if (r.length !== c) sizeOk = false;
+                var seen = {};
+                r.forEach(function (x) { if (seen[x.name]) dupOk = false; seen[x.name] = 1; });
+            }
+        });
+        T('난이도 3종 x 1~8명 전부 인원 일치', sizeOk);
+        T('같은 캐릭터가 두 번 앉지 않는다', dupOk);
+
+        function tierCnt(r, t) { return r.filter(function (x) { return x.tier === t; }).length; }
+        T('하드 모드 8명은 하드 티어 4명 전원', tierCnt(pickRoster(8, 'hard'), 'hard') === 4);
+        T('이지 모드 8명에 하드 티어 없음', tierCnt(pickRoster(8, 'easy'), 'hard') === 0);
+        T('노말 모드는 세 티어가 모두 섞인다', (function () {
+            var r = pickRoster(8, 'normal');
+            return tierCnt(r, 'hard') > 0 && tierCnt(r, 'normal') > 0 && tierCnt(r, 'easy') > 0;
+        })());
+        T('모르는 난이도는 노말로 떨어진다', pickRoster(6, 'nope').length === 6);
+
+        // ===== 용어 사전 =====
+        // 게임이 화면에 띄우는 말이 사전에 없으면, 초보자는 찾아볼 데가 없다
+        var termIndex = [];
+        GLOSSARY.forEach(function (grp) {
+            grp[1].forEach(function (t) { termIndex.push(t[0]); });
+        });
+        function inGlossary(w) {
+            for (var gi = 0; gi < termIndex.length; gi++) {
+                if (termIndex[gi].indexOf(w) >= 0) return true;
+            }
+            return false;
+        }
+        var shown = CAT_NAME.concat([
+            '플러시 드로우', '스트레이트 드로우', '것샷',
+            '폴드', '체크', '콜', '레이즈', '올인', '버스트', '헤즈업',
+            '찹', '사이드', '키커', '배드 비트',
+            '플랍', '턴', '리버', '수딧', '옵숫', '포켓', '커넥터', '참여율'
+        ]);
+        var missing = shown.filter(function (w) { return !inGlossary(w); });
+        T('게임이 띄우는 용어가 전부 사전에 있다' +
+            (missing.length ? ' (빠짐: ' + missing.join(', ') + ')' : ''), missing.length === 0);
+        T('용어마다 설명이 비어 있지 않다', (function () {
+            var ok = true;
+            GLOSSARY.forEach(function (grp) {
+                grp[1].forEach(function (t) { if (!t[1] || t[1].length < 8) ok = false; });
+            });
+            return ok;
+        })());
+        T('용어 수 ' + termIndex.length + '개', termIndex.length >= 40);
+
+        // ===== 칩 색 (실제 카지노 1:5:25:100) =====
+        T('500 미만은 흰색', chipTone(0) === 'white' && chipTone(100) === 'white' && chipTone(499) === 'white');
+        T('500부터 빨강', chipTone(500) === 'red' && chipTone(2499) === 'red');
+        T('2,500부터 초록', chipTone(2500) === 'green' && chipTone(9999) === 'green');
+        T('10,000부터 검정', chipTone(10000) === 'black' && chipTone(999999) === 'black');
+        // 칩에 액면가가 적혀 있으니 합이 금액과 정확히 같아야 한다
+        var DENOM_OF = { purple: 50000, black: 10000, green: 2500, red: 500, white: 100 };
+        function chipSum(v, max) {
+            return chipsFor(v, max).reduce(function (a, t) { return a + DENOM_OF[t]; }, 0);
+        }
+        var sumOk = true, worst = 0;
+        [100, 300, 700, 1500, 3000, 15000, 39000, 76300, 135000].forEach(function (v) {
+            if (chipSum(v, 12) !== v) sumOk = false;
+            worst = Math.max(worst, chipsFor(v, 12).length);
+        });
+        T('칩 합계가 금액과 정확히 일치 (최대 ' + worst + '장)', sumOk);
+        T('3,000은 초록1+빨강1 (2,500+500)', chipsFor(3000, 6).join() === 'green,red');
+        T('135,000은 보라2+검정3+초록2', chipsFor(135000, 12).join() === 'purple,purple,black,black,black,green,green');
+        T('300은 흰색 3장', chipsFor(300, 6).join() === 'white,white,white');
+        T('0이면 칩을 안 그린다', chipIco(0, 6) === '' && chipIco(0, 12, 0) === '');
+        T('max장에서 끊는다', chipsFor(14800, 3).length === 3);
+        T('더미가 액면가 심볼을 참조한다', /href="#chip-green"/.test(chipIco(3000, 12)));
+        T('흩뜨림은 인덱스로 고정 (매 렌더마다 안 흔들린다)',
+            jit(3, 1) === jit(3, 1) && jit(3, 1) !== jit(4, 1));
+        T('새 칩만 날아든다', (chipIco(5000, 12, 2).match(/anim-toss/g) || []).length ===
+            chipsFor(5000, 12).length - 2);
+
+        // ===== 내 패 수학 =====
+        T('플러시 드로우 9아웃 = 34.97%',
+            Math.abs(improveChance({ outs: 9, unseen: 47, toCome: 2 }) - 0.34966) < 0.0005);
+        T('리버 한 장 9아웃 = 19.57%',
+            Math.abs(improveChance({ outs: 9, unseen: 46, toCome: 1 }) - 0.19565) < 0.0005);
+        T('아웃츠 0이면 0%', improveChance({ outs: 0, unseen: 47, toCome: 2 }) === 0);
+
+        T('AA는 5성', preStars([c(14, 0), c(14, 1)]) === 5);
+        T('AKs는 5성', preStars([c(14, 0), c(13, 0)]) === 5);
+        T('98s는 3성(레이트 포지션 패)', preStars([c(9, 3), c(8, 3)]) === 3);
+        T('72o는 1성', preStars([c(7, 0), c(2, 1)]) === 1);
+        T('수딧이 옵숫보다 별이 같거나 높다',
+            preStars([c(11, 0), c(10, 0)]) >= preStars([c(11, 0), c(10, 1)]));
+        T('라벨: 포켓/수딧 커넥터/옵숫',
+            preLabel([c(14, 0), c(14, 1)]) === '포켓 AA' &&
+            preLabel([c(9, 3), c(8, 3)]) === '98 수딧 커넥터' &&
+            preLabel([c(7, 0), c(2, 1)]) === '72 옵숫' &&
+            preLabel([c(14, 2), c(10, 2)]) === 'AT 수딧' &&
+            preLabel([c(10, 0), c(10, 1)]) === '포켓 TT');
+
+        st.board = [c(12, 0), c(11, 0), c(2, 1)];
+        P = [{ seat: 0, isHuman: true, out: false, folded: false, hole: [c(14, 0), c(13, 0)] }];
+        var oc = myOuts();
+        T('A♠K♠ / Q♠J♠2♥ 아웃츠 = ' + oc.outs + '장 (플러시9+스트레이트3+탑페어6)',
+            oc.outs === 18 && oc.unseen === 47 && oc.toCome === 2);
+
+        // 보드 바닥 페어를 아웃으로 세지 않는지
+        st.board = [c(12, 0), c(11, 1), c(2, 2)];
+        P = [{ seat: 0, isHuman: true, out: false, folded: false, hole: [c(9, 3), c(8, 3)] }];
+        var oc2 = myOuts();
+        // 9나 8이 떠도 바닥 페어라 아웃이 아니다. T 4장(QJT98 것샷)만 진짜 아웃
+        T('바닥 페어는 아웃에서 빠지고 것샷만 남는다 (' + oc2.outs + '장)', oc2.outs === 4);
+
+        // ===== 폴드 에퀴티 =====
+        function fp(o) {
+            return { seat: o.seat, out: false, folded: false, allIn: false,
+                stats: { dealt: o.dealt || 0, folds: o.folds || 0 } };
+        }
+        P = [fp({ seat: 0 }), fp({ seat: 1, dealt: 10, folds: 8 }), fp({ seat: 2, dealt: 10, folds: 8 })];
+        st.lastAgg = -1;
+        T('폴드율 80% 둘 -> 전원 폴드 확률 0.64', Math.abs(foldEquity(P[0]) - 0.64) < 1e-9);
+        st.lastAgg = 1;
+        T('방금 친 사람은 덜 접는다', Math.abs(foldEquity(P[0]) - 0.8 * 0.55 * 0.8) < 1e-9);
+        st.lastAgg = -1;
+        P = [fp({ seat: 0 }), fp({ seat: 1 })];
+        T('표본 없으면 기본 0.45', Math.abs(foldEquity(P[0]) - 0.45) < 1e-9);
+
+        // ===== 별 표시 =====
+        T('스트레이트 이상은 5성', postStars(0.84) === 5);
+        T('콤보 드로우는 완성 족보가 없어도 별이 오른다',
+            postStars(postValue({ hole: [c(14, 0), c(13, 0)] },
+                { outs: 18, unseen: 47, toCome: 2 })) >= 4);
+        T('아웃 0장이면 드로우 보정 없음',
+            postValue({ hole: [c(9, 3), c(8, 2)] }, { outs: 0, unseen: 47, toCome: 2 }) < 0.38);
+        T('하이카드는 1성', postStars(0.12) === 1);
+        var st3 = stars(3);
+        T('별 마크업은 항상 5칸',
+            (st3.match(/★/g) || []).length === 3 && (st3.match(/☆/g) || []).length === 2 &&
+            (stars(5).match(/★/g) || []).length === 5 && /☆/.test(stars(5)) === false);
+
+        // 169개 스타팅 핸드 전부 설명이 나오는지 (빈 문자열/예외 없음)
+        var whyOk = true;
+        for (var wa = 2; wa <= 14; wa++) {
+            for (var wb = 2; wb <= wa; wb++) {
+                [[0, 0], [0, 1]].forEach(function (su) {
+                    if (wa === wb && su[0] === su[1]) return;
+                    var txt = holeWhy([c(wa, su[0]), c(wb, su[1])]);
+                    if (!txt || txt.length < 5) whyOk = false;
+                });
+            }
+        }
+        T('169개 스타팅 핸드 전부 설명 문구가 나온다', whyOk);
+
+        st.street = keepSt.street;
+        st.curBet = keepSt.curBet;
+        st.minRaise = keepSt.minRaise;
+        st.bb = keepSt.bb;
+        st.capped = keepSt.capped;
+        st.dealer = keepSt.dealer;
+        st.actor = keepSt.actor;
+        st.pot = keepSt.pot;
+        st.board = keepSt.board;
+        st.lastAgg = keepSt.lastAgg;
+        P = keepP;
+        var fails = out.filter(function (l) { return l.indexOf('FAIL') === 0; }).length;
+        out.unshift('=== Holdem.io 단위 테스트: ' + (out.length) + '개 중 실패 ' + fails + ' ===');
+        var el = $('testOut');
+        el.style.display = 'block';
+        el.textContent = out.join('\n');
+        document.title = 'TEST ' + (fails === 0 ? 'ALL PASS' : fails + ' FAIL');
+    }
+
+    function reportSim(result) {
+        var lines = [
+            '=== Holdem.io 시뮬레이션 ===',
+            '결과: ' + result,
+            '진행 핸드: ' + st.hand,
+            '액션 ' + simActs + ' (나 ' + simHumanActs + ') · 스트리트 ' + simStreets,
+            '칩 보존 위반: ' + simErrors,
+            '생존자: ' + P.filter(notOut).map(function (p) {
+                return p.name + '(' + fmt(p.chips) + ')';
+            }).join(', ')
+        ];
+        var el = $('testOut');
+        el.style.display = 'block';
+        el.style.position = 'fixed';
+        el.style.zIndex = 99;
+        el.style.background = 'var(--bg)';
+        el.style.color = 'var(--fg)';
+        el.style.padding = '10px';
+        el.textContent = lines.join('\n');
+        document.title = 'SIM ' + result + ' hands=' + st.hand + ' err=' + simErrors;
+    }
+
+    initGameUi();
+    loadOpts();
+
+    if (TESTQ) runTests();
+    else if (SIM) startGame();
+    else document.fonts.ready.then(showStart);
+})();
+</script>
+</body>
+</html>
