@@ -683,8 +683,18 @@ body {
     background: var(--panel);
     border-bottom: 1px solid var(--line);
 }
-.pane-tab { flex: 1 1 0; padding: 0.35rem 0; color: var(--dim); font-weight: 700; }
+.pane-tab { flex: 1 1 0; padding: 0.35rem 0; color: var(--dim); font-weight: 700; white-space: nowrap; }
 .pane-tab.is-on { color: var(--accent); box-shadow: inset 0 -2px 0 var(--accent); }
+/* 켜져 있는 탭을 다시 누르면 접힌다. 폰에서 로그가 화면의 5분의 1을 먹으니
+   되찾을 수 있어야 한다. 화살표가 지금 상태와 다음 동작을 같이 알려준다 */
+.pane-tab.is-on::after { content: ' ▾'; font-size: 0.8em; opacity: 0.65; }
+.log-pane.is-folded .pane-tab.is-on::after { content: ' ▸'; }
+.log-pane.is-folded { flex: none; }
+.log-pane.is-folded .log,
+.log-pane.is-folded .terms,
+.log-pane.is-folded .log-more { display: none; }
+.log-pane.is-folded::before,
+.log-pane.is-folded::after { display: none; }
 
 .terms { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 0.2rem 0.6rem 0.8rem; }
 .term-grp { color: var(--dimmer); letter-spacing: 0.12em; margin: 0.7rem 0 0.15rem; }
@@ -796,6 +806,10 @@ body {
     .seat-cards > .card.back,
     .seat-cards .card.slot,
     .seat-cards .card.slot + .card.back { width: 0.9rem; min-width: 0.9rem; height: 1.25rem; line-height: 1.25rem; margin-right: 0.2rem; }
+    /* ?패널은 초보자용이라 문장이 길다. 데스크톱의 1.9 줄간격이 폰에선
+       테이블을 통째로 밀어낸다. 줄간격만 줄여도 4줄이 3줄 높이로 들어간다 */
+    .math-box { line-height: 1.45; padding: 0.3rem 0.5rem; max-height: 32vh; overflow-y: auto; }
+    .math-cav { display: none; }         /* 면책 한 줄은 폰에서 두 줄을 먹는다 */
 }
 
 /* ── 1. 폰 세로 ── */
@@ -808,7 +822,9 @@ body {
         --felt-x: 1.2rem; --felt-y: 0.9rem; --felt-r: 46%;
     }
     #scrGame { flex-direction: column; }
-    .log-pane { flex: 0 0 6.5rem; min-width: 0; border-left: none; border-top: 1px solid var(--line); }
+    /* 6.5rem은 2.3줄이었다. 10rem이면 5줄 - 한 스트리트의 최근 액션이 들어온다.
+       접으면 탭 한 줄만 남으니 테이블은 언제든 되찾을 수 있다 */
+    .log-pane { flex: 0 0 10rem; min-width: 0; border-left: none; border-top: 1px solid var(--line); }
     .board-wrap { min-width: 100%; gap: 0.3rem; }
     .sd-timer { width: 26px; height: 26px; margin-top: 0; }
     .me-panel { padding: 0.4rem 0.5rem; }
@@ -857,7 +873,7 @@ body {
         --felt-x: 3rem; --felt-y: 2rem; --felt-r: 40%;
     }
     #scrGame { flex-direction: column; }
-    .log-pane { flex: 0 0 8rem; min-width: 0; border-left: none; border-top: 1px solid var(--line); }
+    .log-pane { flex: 0 0 9.75rem; min-width: 0; border-left: none; border-top: 1px solid var(--line); }
     .seat-cards { min-height: 0; }
     .seat-cards > .card.back,
     .seat-cards .card.slot,
@@ -996,10 +1012,10 @@ body {
         </div>
     </div>
 
-    <aside class="log-pane">
+    <aside class="log-pane" id="logPane">
         <div class="pane-tabs" id="paneTabs">
-            <button class="pane-tab is-on" data-pane="log">로그</button>
-            <button class="pane-tab" data-pane="terms">용어</button>
+            <button class="pane-tab is-on" data-pane="log" title="다시 누르면 접힙니다">로그</button>
+            <button class="pane-tab" data-pane="terms" title="다시 누르면 접힙니다">용어</button>
         </div>
         <div class="log" id="logView"></div>
         <div class="terms" id="termsView" hidden></div>
@@ -1309,8 +1325,36 @@ body {
         return parts.join(' ');
     }
 
+    // ponytail: 핸드가 끝나면 ?는 "다음 수 계산" 대신 "방금 뭐가 일어났나"를 낸다.
+    // 초보자가 실제로 배우는 건 결과 직후의 한 줄이다. 버튼도 패널도 그대로 쓴다.
+    function recapHtml() {
+        var me = P[0];
+        var w = P[st.winners[0]];
+        var iWon = st.winners.indexOf(0) >= 0;
+        var wName = st.winners.length > 1 ? '공동 승리' : w.name;
+        var head = '<div class="math-top"><b>' +
+            (iWon ? '이겼습니다' : me.folded ? '폴드했습니다' : '졌습니다') + '</b></div>';
+
+        if (!st.wasShowdown) {
+            return head + '<div>' + (iWon
+                ? '나머지가 전부 폴드해서, 패를 보여주지 않고 팟을 가져왔습니다.'
+                : wName + ' 말고는 아무도 남지 않아 패 공개 없이 끝났습니다.') + '</div>';
+        }
+        if (iWon) {
+            return head + '<div>내 패 <b>' + me.handName + '</b> — 공개된 패 중 가장 높았습니다.</div>';
+        }
+        var mine = me.folded || !me.handName ? '' : '내 패 <b>' + me.handName + '</b>, ';
+        var same = !me.folded && me.score &&
+            Math.floor(me.score / P15_5) === Math.floor(w.score / P15_5);
+        return head + '<div>' + mine + wName + ' <b>' + w.handName + '</b> — 이쪽이 더 높습니다.</div>' +
+            (same ? '<div class="math-note">같은 족보끼리는 숫자가 높은 쪽이 이깁니다.</div>' : '');
+    }
+
+    var CAVEAT = '<div class="math-note math-cav">상대가 뭘 들었는지는 모르는 상태의 계산입니다.</div>';
+
     function mathHtml() {
         var me = P[0];
+        if (me && !st.inHand && st.winners && st.winners.length) return recapHtml();
         if (!me || !me.hole.length || me.folded || me.out) return '패가 없습니다.';
         // ponytail: 카드가 뒤집히기 전에 정답을 띄우면 딜링의 긴장이 사라진다.
         // Tab 힌트는 이미 meReveal을 보고 있었다 - 같은 기준을 쓴다.
@@ -1335,34 +1379,53 @@ body {
         var o = myOuts();
         var head = '<div class="math-top">' + stars(postStars(postValue(me, o))) +
             ' <b>' + name + '</b></div>';
-        if (!o) return head + '<div>카드가 다 나왔습니다. 이게 최종 패입니다.</div>';
-        if (!o.outs) {
-            return head + '<div>더 좋아질 카드가 없습니다. 지금 패로 이기거나, 상대를 접게 만들어야 합니다.</div>';
+        var callAmt = st.curBet - me.bet;
+        var facing = st.inHand && st.actingSeat === 0 && callAmt > 0;
+        // 화면에 보이는 값(반올림)으로 판정한다. 32.6 vs 33.3을 둘 다 33%로
+        // 찍어놓고 "낮으니 손해"라고 하면 읽는 사람은 모순으로 본다.
+        var pay = facing ? Math.min(callAmt, me.chips) : 0;
+        var need = facing ? Math.round(pay / (potTotal() + pay) * 100) : 0;
+
+        // 콜 판정은 "이길 확률 vs 콜에 드는 돈"이다. 그런데 완성된 패의 이길 확률은
+        // 개선 확률이 아니다. 둘을 섞으면 셋을 들고도 "콜은 손해"가 나온다 - 실제로 나왔다.
+        // 완성패는 지금 나를 이기는 조합을 직접 세고, 드로우만 아웃츠로 판단한다.
+        function odds(win, ok, no) {
+            if (!facing) return '';
+            var tail = win > need ? ['good', ok] : win < need ? ['bad', no]
+                : ['', '콜에 드는 돈과 거의 같습니다. 이득도 손해도 아닌 경계예요.'];
+            return '<div class="' + tail[0] + '">콜에 드는 돈은 팟의 <b>' +
+                need + '%</b>입니다. ' + tail[1] + '</div>';
+        }
+
+        // 완성됐거나 더 좋아질 카드가 없으면, 판단 기준은 "지금 이기고 있느냐"다.
+        // 개선 확률로 재면 셋을 들고도 접으라는 말이 나온다 - 실제로 나왔다.
+        if (made || !o || !o.outs) {
+            var lose = Math.round(beatenShare(me.hole, st.board) * 100);
+            var body;
+            if (made) {
+                body = '상대 두 장 중 지금 나를 이기는 조합은 <b>' + lose + '%</b>입니다' +
+                    (st.board.length < 5 ? ', 지금 보드까지 기준으로.' : '.');
+                if (o && o.outs) body += ' 더 좋아질 카드도 <b>' + o.outs + '장</b> 남았습니다.';
+            } else {
+                body = '아직 아무것도 안 맞았고, 더 좋아질 카드도 없습니다. ' +
+                    '상대 두 장 중 나를 이기는 조합이 <b>' + lose + '%</b>입니다.';
+            }
+            if (!facing && !o) body += ' 카드가 다 나왔으니 이게 최종 패입니다.';
+            if (!facing && o && !o.outs && made) body += ' 상대를 접게 만들 수도 있습니다.';
+            return head + '<div>' + body + '</div>' +
+                odds(100 - lose, '이길 확률이 그보다 높으니 콜이 이득입니다.',
+                    '이길 확률이 그보다 낮으니 콜은 손해입니다.') + CAVEAT;
         }
 
         // ponytail: 초보자용이다. "아웃츠/개선/콜 부담" 같은 용어와 `A · B · C` 나열 대신
         // 완결된 문장으로 쓴다. 숫자는 문장 안에 하나씩만.
         var pct = Math.round(improveChance(o) * 100);
-        var body = (made ? '' : '아직 완성된 족보는 없습니다. ') +
-            '더 좋아질 카드가 <b>' + o.outs + '장</b> 남았고, ' +
+        var body = '아직 완성된 족보는 없습니다. 더 좋아질 카드가 <b>' + o.outs + '장</b> 남았고, ' +
             (o.toCome === 2 ? '남은 두 장' : '마지막 한 장') +
             ' 안에 나올 확률은 <b>' + pct + '%</b>입니다.';
-        var verdict = '';
-
-        var callAmt = st.curBet - me.bet;
-        if (st.inHand && st.actingSeat === 0 && callAmt > 0) {
-            var pay = Math.min(callAmt, me.chips);
-            // 화면에 보이는 값(반올림)으로 판정한다. 32.6 vs 33.3을 둘 다 33%로
-            // 찍어놓고 "낮으니 손해"라고 하면 읽는 사람은 모순으로 본다.
-            var need = Math.round(pay / (potTotal() + pay) * 100);
-            var tail = pct > need ? ['good', '나올 확률이 그보다 높으니 콜이 이득입니다.']
-                : pct < need ? ['bad', '나올 확률이 그보다 낮으니 콜은 손해입니다.']
-                : ['', '나올 확률과 거의 같습니다. 이득도 손해도 아닌 경계예요.'];
-            verdict = '<div class="' + tail[0] + '">콜에 드는 돈은 팟의 <b>' +
-                need + '%</b>입니다. ' + tail[1] + '</div>';
-        }
-        return head + '<div>' + body + '</div>' + verdict +
-            '<div class="math-note">상대가 뭘 들었는지는 모르는 상태의 계산입니다.</div>';
+        var verdict = odds(pct, '나올 확률이 그보다 높으니 콜이 이득입니다.',
+            '나올 확률이 그보다 낮으니 콜은 손해입니다.');
+        return head + '<div>' + body + '</div>' + verdict + CAVEAT;
     }
 
     function renderMath() {
@@ -1799,6 +1862,19 @@ body {
         });
     }
 
+    // SIM은 dly()가 1ms를 돌려주지만 setTimeout이라 브라우저가 백그라운드 탭을
+    // 스로틀한다 - 실측 핸드당 20초라 토너먼트 한 판도 못 돌렸다. 큐를 동기로
+    // 비우면 즉시 끝난다. 이게 있어야 파라미터가 아니라 "결과"를 검증할 수 있다.
+    function drainLater(maxSteps) {
+        var guard = maxSteps || 2000000;
+        while (pending.length && guard-- > 0) {
+            var t = pending.shift();
+            clearTimeout(t.id);
+            t.run();
+        }
+        return guard > 0;
+    }
+
     function notOut(p) { return !p.out; }
 
     function inHand(p) { return !p.out && !p.folded; }
@@ -1851,26 +1927,58 @@ body {
     // ponytail: SIM 모드에선 내 좌석도 AI가 대신 둔다(proceed의 `!SIM`). 그래서 필요함
     function makePersona() {
         function rr(a, b) { return a + Math.random() * (b - a); }
-        return { loose: rr(-0.08, 0.12), aggr: rr(0.25, 0.6), bluff: rr(0.04, 0.12), noise: 0.12 };
+        return { loose: rr(0.04, 0.16), aggr: rr(0.25, 0.6), bluff: rr(0.04, 0.12),
+                 noise: 0.12, pos: 0.6, read: 0.5, board: 0.55 };
     }
 
+    // 성격(ROSTER)과 실력(SKILL)은 따로 관리하고 여기서 한 번만 합친다.
+    function personaOf(ch) {
+        var sk = SKILL[ch.tier], out = { pos: sk.pos, read: sk.read, board: sk.board };
+        for (var k in ch.p) { if (ch.p.hasOwnProperty(k)) out[k] = ch.p[k]; }
+        return out;
+    }
+
+    // 포커 플레이어를 가르는 두 축: 패를 얼마나 넓게 보는가(타이트/루즈),
+    // 들어간 다음 올리는가 받는가(어그레시브/패시브). 네 조합이 전부 다른 상대다.
+    var TYPE = {
+        TAG: { label: '타이트-어그레시브', short: 'TAG' },
+        TP: { label: '타이트-패시브', short: 'TP' },
+        LAG: { label: '루즈-어그레시브', short: 'LAG' },
+        LP: { label: '루즈-패시브', short: 'LP' }
+    };
+
+    // 난이도는 "어떤 유형이냐"가 아니라 "얼마나 잘 두느냐"다. 네 유형은 어느
+    // 난이도에나 다 앉고, 대신 아래 세 가지와 이기는 스타일(TAG/LAG) 비율이 같이 움직인다.
+    //   noise 실수 크기 · pos 포지션 인식 · read 상대 베팅 패턴 · board 보드 위험 감지
+    var SKILL = {
+        hard: { pos: 1, read: 0.85, board: 1 },
+        normal: { pos: 0.6, read: 0.5, board: 0.55 },
+        easy: { pos: 0.25, read: 0.15, board: 0.2 }
+    };
+
+    // loose/aggr는 눈으로 고른 값이 아니다. 9인 테이블 목표 VPIP/PFR에서 역산했다.
+    //   TAG 23/17 · TP 16/5 · LAG 40/30 · LP 47/6 (%)
+    // 티어는 유형이 아니라 "실수의 크기"다: noise가 작을수록 판단이 정확하다.
+    // handStrength나 raiseBar를 건드리면 이 값들도 같이 다시 풀어야 한다.
     var ROSTER = [
-        { name: '동현', tier: 'hard', p: { loose: -0.22, aggr: 0.78, bluff: 0.05, noise: 0.02 } },
-        { name: '세아', tier: 'hard', p: { loose: -0.08, aggr: 0.66, bluff: 0.28, noise: 0.03 } },
-        { name: '현우', tier: 'hard', p: { loose: -0.12, aggr: 0.56, bluff: 0.12, noise: 0.02 } },
-        { name: '윤아', tier: 'hard', p: { loose: -0.04, aggr: 0.9, bluff: 0.16, noise: 0.03 } },
-        { name: '보라', tier: 'normal', p: { loose: 0.28, aggr: 0.9, bluff: 0.3, noise: 0.08 } },
-        { name: '준호', tier: 'normal', p: { loose: 0.24, aggr: 0.1, bluff: 0, noise: 0.07 } },
-        { name: '지훈', tier: 'normal', p: { loose: 0, aggr: 0.5, bluff: 0.08, noise: 0.06 } },
-        { name: '다은', tier: 'normal', p: { loose: -0.06, aggr: 0.64, bluff: 0.24, noise: 0.05 } },
-        { name: '태양', tier: 'normal', p: { loose: -0.18, aggr: 0.18, bluff: 0, noise: 0.06 } },
-        { name: '시우', tier: 'normal', p: { loose: 0.18, aggr: 0.72, bluff: 0.14, noise: 0.12 } },
-        { name: '민수', tier: 'easy', p: { loose: 0.18, aggr: 0.2, bluff: 0, noise: 0.14 } },
-        { name: '예린', tier: 'easy', p: { loose: 0.14, aggr: 0.32, bluff: 0.02, noise: 0.18 } },
-        { name: '건우', tier: 'easy', p: { loose: 0.26, aggr: 0.58, bluff: 0.06, noise: 0.14 } },
-        { name: '소율', tier: 'easy', p: { loose: 0.1, aggr: 0.3, bluff: 0.02, noise: 0.12 } },
-        { name: '재민', tier: 'easy', p: { loose: -0.12, aggr: 0.14, bluff: 0, noise: 0.1 } },
-        { name: '채원', tier: 'easy', p: { loose: 0.06, aggr: 0.24, bluff: 0.02, noise: 0.11 } }
+        { name: '동현', tier: 'hard', type: 'TAG', p: { loose: 0.03, aggr: 0.68, bluff: 0.1, noise: 0.02 } },
+        { name: '하린', tier: 'hard', type: 'TAG', p: { loose: 0.06, aggr: 0.67, bluff: 0.06, noise: 0.02 } },
+        { name: '윤아', tier: 'hard', type: 'LAG', p: { loose: 0.11, aggr: 0.66, bluff: 0.22, noise: 0.03 } },
+        { name: '태준', tier: 'hard', type: 'LAG', p: { loose: 0.12, aggr: 0.67, bluff: 0.26, noise: 0.02 } },
+        { name: '현우', tier: 'hard', type: 'TP', p: { loose: 0.02, aggr: 0.31, bluff: 0.04, noise: 0.02 } },
+        { name: '세아', tier: 'hard', type: 'LP', p: { loose: 0.16, aggr: 0.17, bluff: 0.05, noise: 0.03 } },
+        { name: '지훈', tier: 'normal', type: 'TAG', p: { loose: 0.08, aggr: 0.58, bluff: 0.1, noise: 0.06 } },
+        { name: '다은', tier: 'normal', type: 'LP', p: { loose: 0.18, aggr: 0.12, bluff: 0.04, noise: 0.05 } },
+        { name: '보라', tier: 'normal', type: 'LAG', p: { loose: 0.14, aggr: 0.61, bluff: 0.24, noise: 0.07 } },
+        { name: '시우', tier: 'normal', type: 'LAG', p: { loose: 0.13, aggr: 0.6, bluff: 0.18, noise: 0.08 } },
+        { name: '태양', tier: 'normal', type: 'TP', p: { loose: 0.06, aggr: 0.33, bluff: 0.02, noise: 0.06 } },
+        { name: '준호', tier: 'normal', type: 'LP', p: { loose: 0.2, aggr: 0.13, bluff: 0.02, noise: 0.07 } },
+        { name: '예린', tier: 'easy', type: 'TAG', p: { loose: 0.12, aggr: 0.44, bluff: 0.06, noise: 0.18 } },
+        { name: '건우', tier: 'easy', type: 'LAG', p: { loose: 0.18, aggr: 0.5, bluff: 0.1, noise: 0.14 } },
+        { name: '재민', tier: 'easy', type: 'TP', p: { loose: 0.07, aggr: 0.29, bluff: 0, noise: 0.1 } },
+        { name: '채원', tier: 'easy', type: 'TP', p: { loose: 0.09, aggr: 0.28, bluff: 0.02, noise: 0.11 } },
+        { name: '민수', tier: 'easy', type: 'LP', p: { loose: 0.24, aggr: 0.05, bluff: 0, noise: 0.14 } },
+        { name: '소율', tier: 'easy', type: 'LP', p: { loose: 0.25, aggr: 0.04, bluff: 0.02, noise: 0.12 } }
     ];
 
 
@@ -1938,7 +2046,11 @@ body {
         ]],
         ['상대 읽기', [
             ['참여율 (VPIP)', '돈을 넣고 판에 참여한 비율. 높으면 아무 패나 치는 루즈, 낮으면 좋은 패만 치는 타이트입니다.'],
-            ['공격', '액션 중 레이즈·올인의 비율. 높으면 어그레시브해서 잘 안 접습니다.']
+            ['공격', '액션 중 레이즈·올인의 비율. 높으면 어그레시브해서 잘 안 접습니다.'],
+            ['타이트-어그레시브 (TAG)', '좋은 패만 골라 들어오고, 들어오면 올립니다. 이 사람이 올리면 대개 진짜입니다. 가장 상대하기 까다로운 유형.'],
+            ['타이트-패시브 (TP)', '좋은 패만 들어오는데 올리지는 않고 콜만 합니다. 록이라고도 부릅니다. 이 사람이 올리면 거의 확실히 괴물 패입니다.'],
+            ['루즈-어그레시브 (LAG)', '약한 패로도 들어와서 계속 올립니다. 블러프가 섞여 있으니 좋은 패를 잡으면 그냥 받아주면 됩니다.'],
+            ['루즈-패시브 (LP)', '아무 패나 따라오지만 올리지는 않습니다. 콜링 스테이션이라 부릅니다. 블러프가 안 통하니 좋은 패로 크게 치세요.']
         ]]
     ];
 
@@ -1949,8 +2061,31 @@ body {
     var DIFF_MIX = {
         easy: ['easy', 'easy', 'easy', 'normal'],
         normal: ['normal', 'easy', 'hard', 'normal', 'easy', 'normal', 'hard', 'easy'],
-        hard: ['hard', 'normal', 'hard', 'normal', 'hard', 'normal', 'hard', 'normal']
+        hard: ['hard', 'hard', 'normal', 'hard', 'hard', 'normal', 'hard', 'hard']
     };
+
+    // 티어만 맞춰 뽑으면 8명이 전부 TAG인 테이블이 나온다. 빠진 유형이 있으면
+    // 중복된 유형에서 한 자리를 내주고 맞바꾼다. 티어는 최대한 유지해서 난이도를 지킨다.
+    function spreadTypes(picks) {
+        if (picks.length < 4) return picks;
+        Object.keys(TYPE).forEach(function (want) {
+            if (picks.some(function (c) { return c.type === want; })) return;
+            var cnt = {};
+            picks.forEach(function (c) { cnt[c.type] = (cnt[c.type] || 0) + 1; });
+            var di = -1;
+            picks.forEach(function (c, i) {
+                if (cnt[c.type] > 1 && (di < 0 || cnt[c.type] > cnt[picks[di].type])) di = i;
+            });
+            if (di < 0) return;
+            var pool = ROSTER.filter(function (c) {
+                return c.type === want && picks.indexOf(c) < 0;
+            });
+            var same = pool.filter(function (c) { return c.tier === picks[di].tier; });
+            var add = shuffle(same.length ? same : pool)[0];
+            if (add) picks[di] = add;
+        });
+        return picks;
+    }
 
     function pickRoster(count, diff) {
         var pool = { hard: [], normal: [], easy: [] };
@@ -1968,7 +2103,16 @@ body {
             }
             picks.push(pool[want].pop());
         }
-        return shuffle(picks);
+        return shuffle(spreadTypes(picks));
+    }
+
+    // ponytail: chen/20과 postStrength(0.12~0.99)는 서로 다른 눈금인데 같은 임계(0.6)를
+    // 재던 게 문제였다. 프리플랍만 통과율 1.4%(QQ+)라 9인 테이블에선 아무도 선제
+    // 레이즈를 안 했다. chen을 postStrength와 같은 눈금에 올리고, 쓰는 곳을 하나로 묶는다.
+    function handStrength(p) {
+        return st.street === 'preflop'
+            ? clamp(0.12 + chen(p.hole) * 0.045, 0.05, 0.99)
+            : postStrength(p, p.persona && p.persona.board);
     }
 
     function chen(hole) {
@@ -2003,7 +2147,69 @@ body {
         return 0;
     }
 
-    function postStrength(p) {
+    // 지금 이 보드에서 상대 두 장이 나를 이기는 조합의 비율. 정확히 다 센다.
+    // 리버 990조합에 27ms라 AI가 매 결정마다 부를 수는 없다 - ?패널 전용이다.
+    // 스트리트가 안 바뀌면 같은 답이므로 한 번만 센다.
+    var beatenMemo = { key: '', val: 0 };
+    function beatenShare(hole, board) {
+        var k = hole.concat(board).map(cardKey).join(',');
+        if (beatenMemo.key === k) return beatenMemo.val;
+        var seen = markCards({}, hole.concat(board));
+        var rest = [];
+        for (var su = 0; su < 4; su++) {
+            for (var r = 2; r <= 14; r++) {
+                if (!seen[su * 15 + r]) rest.push({ s: su, r: r });
+            }
+        }
+        var mine = evalBest(hole.concat(board));
+        var worse = 0, tot = 0;
+        for (var i = 0; i < rest.length; i++) {
+            for (var j = i + 1; j < rest.length; j++) {
+                tot++;
+                if (evalBest([rest[i], rest[j]].concat(board)) > mine) worse++;
+            }
+        }
+        beatenMemo = { key: k, val: tot ? worse / tot : 0 };
+        return beatenMemo.val;
+    }
+
+    // 보드에 몇 장이 연속으로 걸쳐 있나 (A는 위아래 양쪽)
+    function boardSpan(board) {
+        var seen = {};
+        board.forEach(function (c) { seen[c.r] = 1; if (c.r === 14) seen[1] = 1; });
+        var best = 0;
+        for (var lo = 1; lo <= 10; lo++) {
+            var n = 0;
+            for (var r = lo; r < lo + 5; r++) { if (seen[r]) n++; }
+            if (n > best) best = n;
+        }
+        return best;
+    }
+
+    // AI용 O(1) 보드 위험. 조합을 다 세면 리버에서 8명 x 수백 핸드를 못 돌린다.
+    // 사람이 테이블에서 실제로 보는 것만 본다: 같은 무늬, 연결, 보드 페어.
+    // 보드에 많이 깔릴수록 상대가 닿기 쉬우므로 장수로 가중한다.
+    function boardDanger(board) {
+        if (board.length < 3) return 0;
+        var suit = [0, 0, 0, 0], rank = {}, maxRank = 0;
+        board.forEach(function (c) {
+            suit[c.s]++;
+            rank[c.r] = (rank[c.r] || 0) + 1;
+            if (rank[c.r] > maxRank) maxRank = rank[c.r];
+        });
+        var maxSuit = Math.max.apply(null, suit);
+        var span = boardSpan(board);
+        var d = 0;
+        if (maxSuit >= 4) d = Math.max(d, 0.3);        // 한 장만 들어도 플러시
+        else if (maxSuit === 3) d = Math.max(d, 0.14); // 두 장 다 맞아야
+        if (span >= 4) d = Math.max(d, 0.24);
+        else if (span >= 3) d = Math.max(d, 0.12);
+        if (maxRank >= 3) d = Math.max(d, 0.26);       // 보드 트리플 = 풀하우스/포카드
+        else if (maxRank === 2) d = Math.max(d, 0.16);
+        return d;
+    }
+
+    function postStrength(p, aware) {
         var all = p.hole.concat(st.board);
         var s = evalBest(all);
         var cat = Math.floor(s / P15_5);
@@ -2022,7 +2228,11 @@ body {
             if (Math.max.apply(null, suitCnt) === 4) base += 0.14;
             base += straightDrawBonus(all);
         }
-        return Math.min(base, 0.99);
+        base = Math.min(base, 0.99);
+        // 여기가 없으면 하트 4장 깔린 보드에서도 투페어를 0.62로 믿고 안 접는다.
+        // noise/read/pos 어느 다이얼로도 못 고치는 구멍이라 강도 자체에서 뺀다.
+        var see = aware === undefined ? 1 : aware;
+        return base - boardDanger(st.board) * (1 - base) * see;
     }
 
     var logEl;
@@ -2061,6 +2271,17 @@ body {
         });
         if (terms) setLogMore(false);
         else logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function foldPane(on) {
+        $('logPane').classList.toggle('is-folded', on);
+        try { localStorage.setItem('holdem.logfold', on ? '1' : '0'); } catch (e) { /* 무시 */ }
+        if (!on && logEl) logEl.scrollTop = logEl.scrollHeight;
+        repositionFx();
+    }
+
+    function paneFolded() {
+        return $('logPane').classList.contains('is-folded');
     }
 
     function setLogMore(on) {
@@ -2162,9 +2383,9 @@ body {
     }
 
     var DIFF_HINT = {
-        easy: '루즈-패시브 위주. 약한 패로 따라오고 잘 안 덮칩니다.',
-        normal: '섞여 있습니다. 고수 한둘에 나머지는 보통.',
-        hard: '타이트-어그레시브 위주. 당신의 베팅 패턴을 읽습니다.'
+        easy: '네 유형이 다 앉습니다. 실수가 잦고, 포지션을 거의 안 보고, 당신을 안 읽습니다.',
+        normal: '네 유형이 다 앉습니다. 절반은 이기는 스타일이고 판단도 절반쯤 정확합니다.',
+        hard: '네 유형이 다 앉습니다. 실수가 적고, 포지션을 챙기고, 당신의 베팅 패턴을 읽습니다.'
     };
 
     // ponytail: 스케일/난이도 둘 다 "버튼 그룹에서 하나 골라 저장"이다
@@ -2202,6 +2423,7 @@ body {
         setDiff(saved('diff', 'normal'));
         setTheme(saved('theme', 'neon'));
         if (saved('math', '0') === '1') { $('mathBox').hidden = false; }
+        if (saved('logfold', '0') === '1') { foldPane(true); }
     }
 
     function showStart() {
@@ -2224,7 +2446,7 @@ body {
         var picks = pickRoster(cfg.ai, cfg.diff);
         for (var i = 1; i <= cfg.ai; i++) {
             var ch = picks[i - 1];
-            P.push({ seat: i, name: ch.name, isHuman: false, chips: cfg.chips, persona: ch.p });
+            P.push({ seat: i, name: ch.name, isHuman: false, chips: cfg.chips, persona: personaOf(ch), type: ch.type, tier: ch.tier });
         }
         P.forEach(function (p) {
             p.out = false; p.folded = false; p.allIn = false;
@@ -2255,7 +2477,7 @@ body {
         later(startHand, dly(400, 700));
     }
 
-    var RESULT_COLS = ['순위', '이름', '결과', '참여율', '폴드', '레이즈', '올인', '팟', '최대 팟', '최고 족보'];
+    var RESULT_COLS = ['순위', '이름', '유형', '결과', '참여율', '폴드', '레이즈', '올인', '팟', '최대 팟', '최고 족보'];
 
     function rankedPlayers() {
         return P.slice().sort(function (a, b) {
@@ -2273,6 +2495,7 @@ body {
                 first: i === 0,
                 cells: [
                     (i === 0 ? ico('i-trophy') : '') + (i + 1) + '위', p.name,
+                    p.type ? TYPE[p.type].short : '-',
                     p.out ? '#' + p.bustHand + ' 버스트' : '우승',
                     (s.dealt ? Math.round(s.vpip / s.dealt * 100) : 0) + '%',
                     '' + s.folds, '' + s.raises, '' + s.allins, '' + s.wins,
@@ -2494,7 +2717,7 @@ body {
 
     function aiThinkTime(p) {
         var callAmt = st.curBet - p.bet;
-        var stg = st.street === 'preflop' ? clamp(chen(p.hole) / 20, 0.05, 1) : postStrength(p);
+        var stg = handStrength(p);
         var anchor = callAmt > 0 ? clamp(callAmt / (potTotal() + callAmt) * 1.15, 0.1, 0.85) : 0.55;
         var close = 1 - clamp(Math.abs(stg - anchor) / 0.35, 0, 1);
         var tell = clamp(p.persona.noise * 3, 0.1, 0.8);
@@ -2635,12 +2858,22 @@ body {
         return !(st.capped && p.acted);
     }
 
+    // 얼마나 거느냐는 실제 포커에서 가장 큰 텔이다. 전원 같은 난수로 걸면
+    // 유형을 넷으로 나눠놓고 플레이어가 읽을 단서는 반쪽만 준 셈이 된다.
+    // 소극적인 사람은 작게, 공격적인 사람은 크게 - 폭도 사람마다 다르다.
     function sizeBet(p, potNow) {
-        var to;
+        var pr = p.persona, to;
+        var aggr = pr && pr.aggr !== undefined ? pr.aggr : 0.5;
         if (st.street === 'preflop' && st.curBet === st.bb) {
-            to = st.bb * (2 + Math.floor(Math.random() * 2)) + sumBets() - st.bb;
+            // 패시브는 2BB 민레이즈, 공격적일수록 3~4BB
+            var bb = 2 + Math.round(aggr * 2 * (0.6 + Math.random() * 0.8));
+            to = st.bb * clamp(bb, 2, 5) + sumBets() - st.bb;
         } else {
-            to = st.curBet + Math.max(st.minRaise, round100(potNow * (0.45 + Math.random() * 0.45)));
+            // 팟의 30%(소극)에서 95%(공격)까지. 난수 폭은 실수가 큰 사람일수록 넓다.
+            var mid = 0.3 + aggr * 0.5;
+            var spread = 0.12 + (pr && pr.noise !== undefined ? pr.noise : 0.1) * 1.5;
+            var frac = clamp(mid + (Math.random() * 2 - 1) * spread, 0.2, 1.1);
+            to = st.curBet + Math.max(st.minRaise, round100(potNow * frac));
         }
         return clamp(round100(to), st.curBet + st.minRaise, p.bet + p.chips);
     }
@@ -2654,7 +2887,29 @@ body {
         if (order.length < 3) return 0;
         var idx = order.indexOf(p.seat);
         if (idx < 0) return 0;
-        return (idx / (order.length - 1) - 0.5) * 0.16;
+        return (idx / (order.length - 1) - 0.5) * 0.16 * p.persona.pos;
+    }
+
+    // 선제 레이즈 통과선과 "내가 얼마나 좋다고 느끼는가". 둘 다 순수 튜닝 값이라
+    // aiAct 안에 박아두면 테스트가 식을 베껴 쓸 수밖에 없다. 밖으로 뺀다.
+    // 두 축은 따로 논다. loose는 eff를 올려 "팟에 들어갈 폭"(VPIP)을,
+    // aggr은 여기서 "들어간 다음 올릴지 받을지"(PFR)를 정한다.
+    // 한 값에 섞으면 루즈-패시브(많이 들어가되 콜만)를 만들 수 없다.
+    function raiseBar(pr, headsUp) {
+        return 0.62 - pr.aggr * 0.34 - (headsUp ? 0.06 : 0);
+    }
+
+    function raiseChance(pr) {
+        return clamp(0.22 + pr.aggr * 0.72, 0, 0.95);
+    }
+
+    function wantsRaise(pr, eff, headsUp) {
+        return eff > 0.9 || (eff > raiseBar(pr, headsUp) && Math.random() < raiseChance(pr));
+    }
+
+    // 0.03이면 9인에서 -0.24 - 원페어와 투페어 사이보다 큰 감점이었다.
+    function effStrength(pr, stg, opp, headsUp, noise) {
+        return stg + pr.loose + noise - 0.012 * (opp - 1) + (headsUp ? 0.06 : 0);
     }
 
     function aiAct(p) {
@@ -2662,17 +2917,16 @@ body {
         var callAmt = st.curBet - p.bet;
         var potNow = potTotal();
         var pr = p.persona;
-        var stg = st.street === 'preflop' ? clamp(chen(p.hole) / 20, 0.05, 1) : postStrength(p);
+        var stg = handStrength(p);
         var noise = (Math.random() * 2 - 1) * pr.noise;
         var headsUp = P.filter(function (x) { return !x.out; }).length === 2;
         // 블러프 빈도를 "상대가 접을 것 같은가"로 조절한다.
         // 0.28은 흔한 폴드에퀴티. 그보다 높으면 더 치고, 낮으면 접는다.
         var feMul = clamp(foldEquity(p) / 0.28, 0.2, 2.4);
-        var eff = stg + pr.loose + noise - 0.03 * (activeOpponents(p) - 1) + (headsUp ? 0.15 : 0);
+        var eff = effStrength(pr, stg, activeOpponents(p), headsUp, noise);
         eff += posBonus(p);
         if (callAmt > 0 && st.lastAgg >= 0 && st.lastAgg !== p.seat) {
-            var skill = clamp(0.9 - pr.noise * 2.5, 0.1, 0.85);
-            eff += skill * obsDistrust(P[st.lastAgg]);
+            eff += pr.read * obsDistrust(P[st.lastAgg]);
         }
 
         // 블러프는 쇼다운 가치가 없을 때 하는 것이다. 어중간한 패로 치면
@@ -2680,10 +2934,9 @@ body {
         var noShowdown = eff < 0.42;
 
         if (callAmt <= 0) {
-            var openThresh = 0.6 - pr.aggr * 0.15 - (headsUp ? 0.12 : 0);
             var openBluff = noShowdown &&
                 Math.random() < pr.bluff * feMul * (st.street === 'preflop' ? 0.5 : 1);
-            if (eff > openThresh || openBluff) {
+            if (wantsRaise(pr, eff, headsUp) || openBluff) {
                 doRaise(p, sizeBet(p, potNow));
             } else {
                 doCheck(p);
@@ -2693,8 +2946,7 @@ body {
 
         var potOdds = callAmt / (potNow + callAmt);
         var mayRaise = canReopen(p);
-        if (mayRaise && p.chips > callAmt &&
-            (eff > 0.9 || (eff > 0.72 - pr.aggr * 0.12 && Math.random() < pr.aggr))) {
+        if (mayRaise && p.chips > callAmt && wantsRaise(pr, eff, headsUp)) {
             doRaise(p, sizeBet(p, potNow));
             return;
         }
@@ -2991,10 +3243,9 @@ body {
 
         if (alive.length === 1) {
             if (slow) later(function () { showSdTimer(function () { markBusts(); showResults(); }); }, 1500);
-            else {
-                var s0 = session;
-                setTimeout(function () { if (s0 === session) showResults(); }, dly(1100, 1400));
-            }
+            // later()가 이미 같은 세션 가드를 한다. 생 setTimeout이면 pending에 안 들어가서
+            // drainLater가 마지막 한 걸음을 못 밟고 SIM이 결과 없이 멈춘다.
+            else later(showResults, dly(1100, 1400));
             return;
         }
 
@@ -3195,6 +3446,9 @@ body {
     }
 
     function renderAll() {
+        // SIM은 볼 사람이 없는데 매 액션마다 좌석/보드/팟을 다시 그리느라 판당 7초였다.
+        // prevBoardLen·prevPot·once.* 는 전부 표시용이라 게임 로직이 읽지 않는다.
+        if (SIM) return;
         if ($('scrGame').hidden) return;
         if (hintEl) {
             if (!canHint()) {
@@ -3287,7 +3541,12 @@ body {
         });
 
         $('paneTabs').addEventListener('click', function (e) {
-            if (e.target.dataset.pane) showPane(e.target.dataset.pane);
+            var which = e.target.dataset.pane;
+            if (!which) return;
+            // 켜져 있는 탭을 다시 누르면 접는다. 다른 탭을 누르면 펴면서 전환한다.
+            if (e.target.classList.contains('is-on')) { foldPane(!paneFolded()); return; }
+            foldPane(false);
+            showPane(which);
         });
 
         // 용어를 누르면 바로 아래 설명이 펼쳐진다
@@ -3612,13 +3871,27 @@ body {
         T('같은 캐릭터가 두 번 앉지 않는다', dupOk);
 
         function tierCnt(r, t) { return r.filter(function (x) { return x.tier === t; }).length; }
-        T('하드 모드 8명은 하드 티어 4명 전원', tierCnt(pickRoster(8, 'hard'), 'hard') === 4);
+        T('하드 모드 8명 중 하드 티어가 6명', tierCnt(pickRoster(8, 'hard'), 'hard') === 6);
         T('이지 모드 8명에 하드 티어 없음', tierCnt(pickRoster(8, 'easy'), 'hard') === 0);
         T('노말 모드는 세 티어가 모두 섞인다', (function () {
             var r = pickRoster(8, 'normal');
             return tierCnt(r, 'hard') > 0 && tierCnt(r, 'normal') > 0 && tierCnt(r, 'easy') > 0;
         })());
         T('모르는 난이도는 노말로 떨어진다', pickRoster(6, 'nope').length === 6);
+        T('4명 이상이면 난이도와 무관하게 네 유형이 다 앉는다', (function () {
+            var ok = true;
+            ['easy', 'normal', 'hard'].forEach(function (d) {
+                for (var c = 4; c <= 8; c++) {
+                    for (var rep = 0; rep < 40; rep++) {
+                        var seen = {};
+                        pickRoster(c, d).forEach(function (x) { seen[x.type] = 1; });
+                        if (Object.keys(seen).length < 4) ok = false;
+                    }
+                }
+            });
+            return ok;
+        })());
+        T('로스터 전원이 유형을 갖는다', ROSTER.every(function (x) { return TYPE[x.type]; }));
 
         // ===== 용어 사전 =====
         // 게임이 화면에 띄우는 말이 사전에 없으면, 초보자는 찾아볼 데가 없다
@@ -3750,6 +4023,229 @@ body {
         }
         T('169개 스타팅 핸드 전부 설명 문구가 나온다', whyOk);
 
+        // ===== ?패널 콜 판정 =====
+        // 셋을 들고 팟사이즈 베팅을 받았을 때 "콜은 손해"가 나왔었다.
+        // 완성패의 이길 확률을 개선 확률로 재서 생긴 버그다.
+        function panelAt(hole, board, pot, bet) {
+            var kp = P, ks = { street: st.street, board: st.board, pot: st.pot,
+                curBet: st.curBet, inHand: st.inHand, winners: st.winners,
+                actingSeat: st.actingSeat }, kr = meReveal, kb = boardShownAt;
+            P = [{ seat: 0, name: '나', isHuman: true, folded: false, out: false,
+                   hole: hole, chips: 100000, bet: 0, stats: {}, obs: {} }];
+            st.board = board;
+            st.street = board.length === 3 ? 'flop' : board.length === 4 ? 'turn' : 'river';
+            st.pot = pot; st.curBet = bet; st.inHand = true; st.winners = [];
+            st.actingSeat = 0; meReveal = true; boardShownAt = 0;
+            var html = mathHtml();
+            P = kp; st.street = ks.street; st.board = ks.board; st.pot = ks.pot;
+            st.curBet = ks.curBet; st.inHand = ks.inHand; st.winners = ks.winners;
+            st.actingSeat = ks.actingSeat; meReveal = kr; boardShownAt = kb;
+            return html;
+        }
+        var setHtml = panelAt([c(9, 0), c(9, 1)], [c(9, 2), c(4, 3), c(2, 0)], 1000, 1000);
+        T('셋으로 팟사이즈 콜을 받으면 이득이라고 말한다',
+            setHtml.indexOf('콜이 이득') > 0 && setHtml.indexOf('콜은 손해') < 0);
+        T('완성패는 개선 확률이 아니라 나를 이기는 조합을 센다',
+            setHtml.indexOf('나를 이기는 조합') > 0);
+        // 드로우는 기존 아웃츠 판정을 그대로 쓴다
+        var drawHtml = panelAt([c(14, 0), c(13, 0)], [c(7, 0), c(2, 0), c(9, 1)], 1000, 900);
+        T('드로우는 아웃츠와 팟오즈로 판단한다',
+            drawHtml.indexOf('아직 완성된 족보는 없습니다') > 0 &&
+            drawHtml.indexOf('나올 확률') > 0);
+        // 하이카드 + 노드로우로 큰 베팅을 받으면 접으라고 해야 한다
+        var junkHtml = panelAt([c(7, 0), c(2, 1)], [c(14, 2), c(11, 3), c(5, 0)], 1000, 1000);
+        T('쓰레기 패로 팟사이즈 콜은 손해라고 말한다', junkHtml.indexOf('콜은 손해') > 0);
+
+        // ===== 보드 위험 =====
+        // 하트 4장 보드에서 투페어를 0.62로 믿고 안 접던 구멍
+        T('마른 보드는 위험 0', boardDanger([c(9, 0), c(4, 1), c(2, 2)]) === 0);
+        T('같은 무늬 4장이 가장 위험하다',
+            boardDanger([c(9, 0), c(4, 0), c(2, 0), c(13, 0)]) >= 0.3);
+        T('보드 페어는 풀하우스 위험', boardDanger([c(9, 0), c(9, 1), c(2, 2)]) >= 0.16);
+        T('연결된 보드는 스트레이트 위험', boardDanger([c(9, 0), c(10, 1), c(11, 2)]) >= 0.12);
+        T('위험한 보드에서 같은 패의 강도가 내려간다', (function () {
+            var kb = st.board, ks = st.street;
+            st.street = 'flop';
+            var hole = [c(14, 0), c(9, 1)];
+            st.board = [c(14, 2), c(7, 3), c(2, 1)];
+            var dry = postStrength({ hole: hole }, 1);
+            st.board = [c(14, 2), c(7, 2), c(2, 2)];
+            var wet = postStrength({ hole: hole }, 1);
+            st.board = kb; st.street = ks;
+            return wet < dry;
+        })());
+        T('보드 감지가 난이도 순서를 따른다',
+            SKILL.hard.board > SKILL.normal.board && SKILL.normal.board > SKILL.easy.board);
+
+        // ===== 베팅 사이즈가 성향을 탄다 =====
+        T('공격적인 사람이 소극적인 사람보다 크게 건다', (function () {
+            var ks = { street: st.street, curBet: st.curBet, minRaise: st.minRaise, bb: st.bb };
+            st.street = 'flop'; st.curBet = 0; st.minRaise = 200; st.bb = 200;
+            function avg(aggr) {
+                var p = { bet: 0, chips: 100000, persona: { aggr: aggr, noise: 0.05 } };
+                var sum = 0;
+                for (var i = 0; i < 400; i++) sum += sizeBet(p, 1000);
+                return sum / 400;
+            }
+            var lo = avg(0.1), hi = avg(0.9);
+            st.street = ks.street; st.curBet = ks.curBet;
+            st.minRaise = ks.minRaise; st.bb = ks.bb;
+            return hi > lo * 1.4;
+        })());
+        T('프리플랍 오픈도 성향을 탄다', (function () {
+            var ks = { street: st.street, curBet: st.curBet, minRaise: st.minRaise, bb: st.bb };
+            var kp = P;
+            // sizeBet이 sumBets()를 보므로 블라인드만 깔린 테이블로 고정한다
+            P = [{ bet: 100 }, { bet: 200 }, { bet: 0 }];
+            st.street = 'preflop'; st.bb = 200; st.curBet = 200; st.minRaise = 200;
+            function avg(aggr) {
+                var p = { bet: 0, chips: 100000, persona: { aggr: aggr, noise: 0.05 } };
+                var sum = 0;
+                for (var i = 0; i < 400; i++) sum += sizeBet(p, 300);
+                return sum / 400;
+            }
+            var lo = avg(0.05), hi = avg(0.95);
+            P = kp; st.street = ks.street; st.curBet = ks.curBet;
+            st.minRaise = ks.minRaise; st.bb = ks.bb;
+            return hi > lo * 1.2;
+        })());
+
+        // ===== 프리플랍 강도 눈금 =====
+        // chen/20을 쓰던 시절엔 선제 레이즈 임계(0.6)를 넘는 게 QQ+ 1.4%뿐이라
+        // 9인 테이블에서 아무도 오픈을 안 했다. 눈금이 다시 어긋나면 여기서 잡힌다.
+        st.street = 'preflop';
+        function hs(ra, sa, rb, sb) { return handStrength({ hole: [c(ra, sa), c(rb, sb)] }); }
+        T('AA가 눈금 최상단', hs(14, 0, 14, 1) > 0.95);
+        T('72o가 눈금 최하단', hs(7, 0, 2, 1) < 0.15);
+        T('AKs > AKo > KJo 순서가 유지된다',
+            hs(14, 0, 13, 0) > hs(14, 0, 13, 1) && hs(14, 0, 13, 1) > hs(13, 0, 11, 1));
+        // 9인 테이블에서 BB를 콜해야 하는 자리(= 프리플랍 오픈)를 그대로 재현한다.
+        // aiAct가 실제로 쓰는 raiseBar/raiseChance를 부르므로 식을 베끼지 않는다.
+        function preflopRates(pr) {
+            var vp = 0, pf = 0, tot = 0;
+            for (var pa = 2; pa <= 14; pa++) {
+                for (var pb = 2; pb <= pa; pb++) {
+                    [[0, 0], [0, 1]].forEach(function (su) {
+                        if (pa === pb && su[0] === su[1]) return;
+                        for (var t = 0; t < 40; t++) {
+                            tot++;
+                            var eff = effStrength(pr, hs(pa, su[0], pb, su[1]), 8, false,
+                                (Math.random() * 2 - 1) * pr.noise) +
+                                (Math.random() - 0.5) * 0.16 * (pr.pos === undefined ? 1 : pr.pos);
+                            var potOdds = 200 / (300 + 200);
+                            if (wantsRaise(pr, eff, false)) { vp++; pf++; }
+                            else if (eff >= potOdds * (1.02 + pr.noise * 1.2)) vp++;
+                        }
+                    });
+                }
+            }
+            return { vpip: Math.round(vp / tot * 100), pfr: Math.round(pf / tot * 100) };
+        }
+        function typeRates(t) {
+            var g = ROSTER.filter(function (x) { return x.type === t; }).map(function (x) { return preflopRates(personaOf(x)); });
+            function av(k) { return Math.round(g.reduce(function (a, v) { return a + v[k]; }, 0) / g.length); }
+            return { vpip: av('vpip'), pfr: av('pfr') };
+        }
+        var rTAG = typeRates('TAG'), rTP = typeRates('TP'),
+            rLAG = typeRates('LAG'), rLP = typeRates('LP');
+        T('TAG 참여 ' + rTAG.vpip + '% / 레이즈 ' + rTAG.pfr + '%  (타이트하고 공격적)',
+            rTAG.vpip >= 15 && rTAG.vpip <= 30 && rTAG.pfr >= 12);
+        T('TP 참여 ' + rTP.vpip + '% / 레이즈 ' + rTP.pfr + '%  (타이트하고 소극적)',
+            rTP.vpip >= 10 && rTP.vpip <= 25 && rTP.pfr <= 9);
+        T('LAG 참여 ' + rLAG.vpip + '% / 레이즈 ' + rLAG.pfr + '%  (루즈하고 공격적)',
+            rLAG.vpip >= 32 && rLAG.pfr >= 22);
+        T('LP 참여 ' + rLP.vpip + '% / 레이즈 ' + rLP.pfr + '%  (루즈하고 소극적)',
+            rLP.vpip >= 38 && rLP.pfr <= 12);
+        // 사분면이 실제로 사분면인지 - 두 축이 각각 독립으로 갈려야 한다
+        T('타이트 둘이 루즈 둘보다 덜 참여한다',
+            Math.max(rTAG.vpip, rTP.vpip) < Math.min(rLAG.vpip, rLP.vpip));
+        T('어그레시브 둘이 패시브 둘보다 많이 올린다',
+            Math.min(rTAG.pfr, rLAG.pfr) > Math.max(rTP.pfr, rLP.pfr));
+        T('72o는 아무도 선제 레이즈로 열지 않는다', ROSTER.every(function (x) {
+            return effStrength(x.p, hs(7, 0, 2, 1), 8, false, 0) <= raiseBar(x.p, false);
+        }));
+        // 포지션 인식이 실제로 레인지를 벌리는지 - 하드만 앞뒤 자리가 달라야 한다
+        function posSpread(tier) {
+            var pr = personaOf(ROSTER.filter(function (x) { return x.tier === tier; })[0]);
+            function at(edge) {
+                var n = 0, tot = 0;
+                for (var pa = 2; pa <= 14; pa++) {
+                    for (var pb = 2; pb <= pa; pb++) {
+                        [[0, 0], [0, 1]].forEach(function (su) {
+                            if (pa === pb && su[0] === su[1]) return;
+                            tot++;
+                            var eff = effStrength(pr, hs(pa, su[0], pb, su[1]), 8, false, 0) +
+                                edge * 0.08 * pr.pos;
+                            if (eff > raiseBar(pr, false)) n++;
+                        });
+                    }
+                }
+                return n / tot * 100;
+            }
+            return Math.round((at(1) - at(-1)) * 10) / 10;
+        }
+        var psH = posSpread('hard'), psE = posSpread('easy');
+        T('하드는 앞자리와 버튼의 레인지 차이가 ' + psH + '%p, 이지는 ' + psE + '%p', psH > psE * 2);
+        // 난이도 = 실력. 유형(공격성)은 난이도가 아니라 성격이므로 여기서 안 잰다.
+        function tierAvg(t, f) {
+            var g = ROSTER.filter(function (x) { return x.tier === t; });
+            return g.reduce(function (a, x) { return a + f(x); }, 0) / g.length;
+        }
+        var noiseOf = function (x) { return x.p.noise; };
+        T('난이도가 오를수록 실수(noise)가 준다',
+            tierAvg('hard', noiseOf) < tierAvg('normal', noiseOf) &&
+            tierAvg('normal', noiseOf) < tierAvg('easy', noiseOf));
+        T('난이도가 오를수록 포지션을 챙긴다',
+            SKILL.hard.pos > SKILL.normal.pos && SKILL.normal.pos > SKILL.easy.pos);
+        T('난이도가 오를수록 상대를 읽는다',
+            SKILL.hard.read > SKILL.normal.read && SKILL.normal.read > SKILL.easy.read);
+        // 이기는 스타일(TAG/LAG) 비율도 난이도와 같이 올라간다
+        function winStyle(t) {
+            var g = ROSTER.filter(function (x) { return x.tier === t; });
+            return Math.round(g.filter(function (x) {
+                return x.type === 'TAG' || x.type === 'LAG';
+            }).length / g.length * 100);
+        }
+        T('이기는 스타일 비율 이지 ' + winStyle('easy') + '% < 노말 ' + winStyle('normal') +
+            '% < 하드 ' + winStyle('hard') + '%',
+            winStyle('easy') < winStyle('normal') && winStyle('normal') < winStyle('hard'));
+        T('그래도 네 유형은 어느 난이도에나 다 있다', ['easy', 'normal', 'hard'].every(function (t) {
+            var seen = {};
+            ROSTER.forEach(function (x) { if (x.tier === t) seen[x.type] = 1; });
+            return Object.keys(seen).length === 4;
+        }));
+        T('페르소나 합성이 성격과 실력을 둘 다 싣는다', (function () {
+            var pr = personaOf(ROSTER.filter(function (x) { return x.tier === 'hard'; })[0]);
+            return pr.loose !== undefined && pr.aggr !== undefined &&
+                pr.pos === SKILL.hard.pos && pr.read === SKILL.hard.read;
+        })());
+
+        // ===== 핸드 종료 복기 (?패널) =====
+        var keepEnd = { inHand: st.inHand, winners: st.winners, wasShowdown: st.wasShowdown };
+        P = [{ seat: 0, name: '나', isHuman: true, folded: false, handName: '원 페어', score: P15_5 * 1 },
+             { seat: 1, name: '상대', folded: false, handName: '투 페어', score: P15_5 * 2 }];
+        st.inHand = false;
+        st.winners = [1];
+        st.wasShowdown = true;
+        T('쇼다운 패배는 양쪽 족보를 다 보여준다', (function () {
+            var h = mathHtml();
+            return h.indexOf('졌습니다') > 0 && h.indexOf('원 페어') > 0 && h.indexOf('투 페어') > 0;
+        })());
+        P[0].score = P15_5 * 2;   // 같은 족보 = 숫자 싸움
+        T('같은 족보로 지면 이유를 설명한다', mathHtml().indexOf('숫자가 높은 쪽') > 0);
+        P[0].folded = true;
+        T('폴드한 핸드는 내 족보를 말하지 않는다', (function () {
+            var h = mathHtml();
+            return h.indexOf('폴드했습니다') > 0 && h.indexOf('내 패') < 0;
+        })());
+        st.wasShowdown = false;
+        st.winners = [0];
+        P[0].folded = false;
+        T('폴드 승리는 패 공개 없이 끝났다고 말한다', mathHtml().indexOf('보여주지 않고') > 0);
+        st.inHand = keepEnd.inHand;
+        st.winners = keepEnd.winners;
+        st.wasShowdown = keepEnd.wasShowdown;
+
         st.street = keepSt.street;
         st.curBet = keepSt.curBet;
         st.minRaise = keepSt.minRaise;
@@ -3795,7 +4291,7 @@ body {
     loadOpts();
 
     if (TESTQ) runTests();
-    else if (SIM) startGame();
+    else if (SIM) { startGame(); drainLater(); }
     else document.fonts.ready.then(showStart);
 })();
 </script>
