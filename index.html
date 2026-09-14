@@ -310,6 +310,8 @@ body {
 .seat-bet { color: var(--fg); font-weight: 700; min-height: 1.1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .hand-label { color: var(--dim); font-weight: 400; }
+/* 지금 내 패가 뭔지는 화면에서 제일 중요한 정보다. 항상 보여야 한다 */
+.hand-now { color: var(--accent); font-weight: 700; text-shadow: var(--glow); white-space: nowrap; }
 .hand-label.is-win { color: var(--accent2); font-weight: 700; text-shadow: var(--glow2); }
 
 .seat-cards { margin-top: 0.25rem; min-height: 3.9rem; }
@@ -1198,15 +1200,25 @@ body {
         if (showSdKick(seat) || moved) applyDim();
     }
 
-    function meHandHint() {
+    function meHandHint(board) {
         var me = P[0];
         if (!me || !me.hole.length || me.folded || me.out) return '';
-        if (st.board.length === 0) {
-            var a = me.hole[0], b = me.hole[1];
-            if (a.r === b.r) return '포켓페어';
-            return a.s === b.s ? '수딧' : '옵숫';
+        var b = board || st.board;
+        if (b.length === 0) {
+            var a = me.hole[0], c2 = me.hole[1];
+            if (a.r === c2.r) return '포켓페어';
+            return a.s === c2.s ? '수딧' : '옵숫';
         }
-        return handName(evalBest(me.hole.concat(st.board)));
+        return handName(evalBest(me.hole.concat(b)));
+    }
+
+    // me-head에 상시로 걸리는 "지금 내 패". 예전엔 Tab을 누르고 있거나
+    // ?패널을 켠 동안에만 보여서, 스트레이트를 들고도 모르고 지나갔다.
+    function handNowHtml() {
+        var me = P[0];
+        if (!me || !st.inHand || !meReveal || me.folded || me.out || !me.hole.length) return '';
+        var txt = meHandHint(st.board.slice(0, shownBoardLen));
+        return txt ? '<span class="hand-now">' + txt + '</span>' : '';
     }
 
     function holeKicker(p, bf) {
@@ -2564,6 +2576,7 @@ body {
 
         st.board = [];
         boardShownAt = 0;
+        shownBoardLen = 0;
         prevPotChips = 0;
         st.pot = 0;
         st.deck = shuffle(makeDeck());
@@ -3019,12 +3032,19 @@ body {
         var line = names[street] + ' ' + st.board.map(function (c) { return cardHtml(c, '', 0, 1); }).join('');
         if (quiet()) {
             boardShownAt = 0;
+            shownBoardLen = st.board.length;
             log(line, 'log-dealer');
         } else {
             var openMs = 420 + (street === 'flop' ? 2 : 0) * 450 + 300;
             boardShownAt = Date.now() + openMs;
-            // 카드가 다 뒤집힌 그 시점에 로그와 분석을 같이 깨운다
-            later(function () { log(line, 'log-dealer'); renderMath(); }, openMs);
+            // 카드가 다 뒤집힌 그 시점에 로그·분석·내 족보를 같이 깨운다.
+            // renderAll은 renderMath를 품고 있고, prevBoardLen이 이미 같은 값이라
+            // 카드가 다시 뒤집히지도 않는다.
+            later(function () {
+                shownBoardLen = st.board.length;
+                log(line, 'log-dealer');
+                renderAll();
+            }, openMs);
         }
         renderAll();
     }
@@ -3361,6 +3381,9 @@ body {
     }
 
     var seatEls = [];
+    // 보드가 뒤집히는 중에 새 족보를 띄우면 플랍 오픈의 긴장이 사라진다.
+    // 실제로 앞면이 보이는 장수만 세어서 그만큼으로 족보를 계산한다.
+    var shownBoardLen = 0;
     var prevBoardLen = 0;
     var once = { boardFlip: 0, hideBadges: false, popBadges: false };
     var meReveal = true;
@@ -3512,6 +3535,7 @@ body {
             '<span class="seat-name">나</span>' +
             '<span class="badge-slot">' + badgeHtml(0) + '</span>' +
             '<span class="dim num-slot me-chips">' + chipIco(shownChips(me), 6) + fmt(shownChips(me)) + '</span>' +
+            handNowHtml() +
             '<span class="me-bet num-slot">' +
             (me.bet > 0 ? chipIco(me.bet) + fmt(me.bet) : handLabel(me)) + '</span>' +
             seatTag(me);
@@ -4022,6 +4046,41 @@ body {
             }
         }
         T('169개 스타팅 핸드 전부 설명 문구가 나온다', whyOk);
+
+        // ===== 지금 내 패 (상시 표시) =====
+        // Tab을 누르고 있거나 ?를 켠 동안에만 보여서 스트레이트를 들고도 몰랐다.
+        function badgeWith(hole, board, shown, opt) {
+            var o = opt || {};
+            var kp = P, kb = st.board, ki = st.inHand, kr = meReveal, ks = shownBoardLen;
+            P = [{ seat: 0, name: '나', isHuman: true, hole: hole,
+                   folded: !!o.folded, out: !!o.out, stats: {}, obs: {} }];
+            st.board = board;
+            st.inHand = o.inHand === undefined ? true : o.inHand;
+            meReveal = o.reveal === undefined ? true : o.reveal;
+            shownBoardLen = shown;
+            var html = handNowHtml();
+            P = kp; st.board = kb; st.inHand = ki; meReveal = kr; shownBoardLen = ks;
+            return html;
+        }
+        var straight = [c(6, 0), c(7, 1)];
+        var sBoard = [c(8, 2), c(9, 3), c(10, 0)];
+        T('스트레이트를 들고 있으면 화면에 스트레이트라고 뜬다',
+            badgeWith(straight, sBoard, 3).indexOf('스트레이트') > 0);
+        T('프리플랍엔 두 장의 관계를 알려준다',
+            badgeWith([c(14, 0), c(14, 1)], [], 0).indexOf('포켓페어') > 0 &&
+            badgeWith([c(14, 0), c(9, 0)], [], 0).indexOf('수딧') > 0);
+        // 보드가 아직 뒤집히는 중이면 안 보이는 카드는 빼고 센다
+        T('플랍이 뒤집히는 중에는 족보를 미리 안 알려준다',
+            badgeWith(straight, sBoard, 0).indexOf('스트레이트') < 0);
+        T('뒤집힌 만큼만 세어서 중간 상태가 맞는다',
+            badgeWith([c(14, 0), c(14, 1)], [c(14, 2), c(9, 3), c(2, 0)], 1)
+                .indexOf('트리플') > 0);
+        T('폴드했거나 카드를 안 받았으면 안 뜬다',
+            badgeWith(straight, sBoard, 3, { folded: true }) === '' &&
+            badgeWith(straight, sBoard, 3, { out: true }) === '' &&
+            badgeWith(straight, sBoard, 3, { reveal: false }) === '');
+        T('핸드가 끝나면 상시 배지는 빠진다 (결과 표시가 대신한다)',
+            badgeWith(straight, sBoard, 3, { inHand: false }) === '');
 
         // ===== ?패널 콜 판정 =====
         // 셋을 들고 팟사이즈 베팅을 받았을 때 "콜은 손해"가 나왔었다.
